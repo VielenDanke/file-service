@@ -19,6 +19,7 @@ import (
 	"github.com/vielendanke/file-service/configs"
 	"github.com/vielendanke/file-service/internal/app/fileservice/handlers"
 	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
+	"github.com/vielendanke/file-service/internal/app/fileservice/repository"
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
 	pb "github.com/vielendanke/file-service/proto"
 )
@@ -115,7 +116,9 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	db := <-initDB("postgres", "postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable", errCh)
 
-	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), db, svc.Options().Store)
+	fr := repository.NewAWSFileRepository(db)
+
+	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), fr, svc.Options().Store)
 
 	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec())
 

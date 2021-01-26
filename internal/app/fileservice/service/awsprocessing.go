@@ -8,28 +8,28 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 	s3store "github.com/unistack-org/micro-store-s3/v3"
 	"github.com/unistack-org/micro/v3/codec"
 	"github.com/unistack-org/micro/v3/store"
 	"github.com/vielendanke/file-service/internal/app/fileservice/model"
+	"github.com/vielendanke/file-service/internal/app/fileservice/repository"
 )
 
 var keyRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 
 // AWSProcessingService ...
 type AWSProcessingService struct {
-	db    *sqlx.DB
-	codec codec.Codec
-	store store.Store
+	fileRepository repository.FileRepository
+	codec          codec.Codec
+	store          store.Store
 }
 
 // NewAWSProcessingService ...
-func NewAWSProcessingService(codec codec.Codec, db *sqlx.DB, store store.Store) FileProcessingService {
+func NewAWSProcessingService(codec codec.Codec, fileRepository repository.FileRepository, store store.Store) FileProcessingService {
 	return &AWSProcessingService{
-		db:    db,
-		codec: codec,
-		store: store,
+		fileRepository: fileRepository,
+		codec:          codec,
+		store:          store,
 	}
 }
 
@@ -64,28 +64,15 @@ func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileM
 	if len(awsFile.GetFileID()) == 0 {
 		return fmt.Errorf("ID is not present")
 	}
-	tx := aps.db.MustBegin()
-	res := tx.MustExecContext(ctx, "INSERT INTO FILES(ID, FILE_NAME, IIN, FILE_LINK, METADATA) VALUES($1, $2, $3, $4, $5)",
-		awsFile.GetFileID(), awsFile.GetFileName(), awsFile.GetIIN(), awsFile.GetFileLink(), string(jsonMetadata),
-	)
-	num, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("Error during rows inserter, %v", err)
+	if err := aps.fileRepository.SaveFile(ctx, awsFile, string(jsonMetadata)); err != nil {
+		return err
 	}
-	if num == 0 {
-		return fmt.Errorf("No insertions found, %d", num)
-	}
-	tx.Commit()
 	return nil
 }
 
 // GetFileMetadata ...
 func (aps *AWSProcessingService) GetFileMetadata(ctx context.Context, id string) (string, error) {
-	jsonMetadata := ""
-	if err := aps.db.QueryRowContext(ctx, "SELECT METADATA FROM FILES WHERE ID=$1", id).Scan(&jsonMetadata); err != nil {
-		return "", fmt.Errorf("Error while reading from DB, %v", err)
-	}
-	return jsonMetadata, nil
+	return aps.fileRepository.FindFileMetadataByID(ctx, id)
 }
 
 // DownloadFile ...
@@ -104,9 +91,11 @@ func (aps *AWSProcessingService) DownloadFile(ctx context.Context, id string) ([
 	}(&file)
 	go func(filename *string) {
 		defer wg.Done()
-		if row := aps.db.QueryRowContext(ctx, "SELECT FILE_NAME FROM FILES WHERE ID=$1", id).Scan(filename); row != nil {
-			errCh <- fmt.Errorf("Error fetching filename from DB, %v", row)
+		fn, err := aps.fileRepository.FindFileNameByID(ctx, id)
+		if err != nil {
+			errCh <- err
 		}
+		*filename = fn
 	}(&filename)
 	wg.Wait()
 	select {
