@@ -5,6 +5,7 @@ import "io"
 // AWSModel ...
 type AWSModel struct {
 	File     io.Reader
+	FileID   string
 	FileName string
 	IIN      string
 	FileLink string
@@ -34,4 +35,9 @@ func (am *AWSModel) GetMetadata() map[string]interface{} {
 // GetFileLink ...
 func (am *AWSModel) GetFileLink() string {
 	return am.FileLink
+}
+
+// GetFileID ...
+func (am *AWSModel) GetFileID() string {
+	return am.FileID
 }

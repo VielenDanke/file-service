@@ -48,7 +48,13 @@ func NewFileProcessingServiceEndpoints() []*api.Endpoint {
 		},
 		&api.Endpoint{
 			Name:    "FileProcessingService.GetFileMetadata",
-			Path:    []string{"/get/{file_id}"},
+			Path:    []string{"/get/{file_metadata_id}"},
+			Method:  []string{"GET"},
+			Handler: "rpc",
+		},
+		&api.Endpoint{
+			Name:    "FileProcessingService.DownloadFile",
+			Path:    []string{"/download/{file_download_id}"},
 			Method:  []string{"GET"},
 			Handler: "rpc",
 		},
@@ -60,6 +66,7 @@ func NewFileProcessingServiceEndpoints() []*api.Endpoint {
 type FileProcessingService interface {
 	FileProcessing(ctx context.Context, req *FileProcessingRequest, opts ...client.CallOption) (*FileProcessingResponse, error)
 	GetFileMetadata(ctx context.Context, req *FileMetadataRequest, opts ...client.CallOption) (*FileMetadataResponse, error)
+	DownloadFile(ctx context.Context, req *FileDownloadRequest, opts ...client.CallOption) (*FileDownloadResponse, error)
 }
 
 type fileProcessingService struct {
@@ -92,17 +99,28 @@ func (c *fileProcessingService) GetFileMetadata(ctx context.Context, req *FileMe
 	return rsp, nil
 }
 
+func (c *fileProcessingService) DownloadFile(ctx context.Context, req *FileDownloadRequest, opts ...client.CallOption) (*FileDownloadResponse, error) {
+	rsp := &FileDownloadResponse{}
+	err := c.c.Call(ctx, c.c.NewRequest(c.name, "FileProcessingService.DownloadFile", req), rsp, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return rsp, nil
+}
+
 // Server API for FileProcessingService service
 
 type FileProcessingServiceHandler interface {
 	FileProcessing(context.Context, *FileProcessingRequest, *FileProcessingResponse) error
 	GetFileMetadata(context.Context, *FileMetadataRequest, *FileMetadataResponse) error
+	DownloadFile(context.Context, *FileDownloadRequest, *FileDownloadResponse) error
 }
 
 func RegisterFileProcessingServiceHandler(s server.Server, hdlr FileProcessingServiceHandler, opts ...server.HandlerOption) error {
 	type fileProcessingService interface {
 		FileProcessing(ctx context.Context, req *FileProcessingRequest, rsp *FileProcessingResponse) error
 		GetFileMetadata(ctx context.Context, req *FileMetadataRequest, rsp *FileMetadataResponse) error
+		DownloadFile(ctx context.Context, req *FileDownloadRequest, rsp *FileDownloadResponse) error
 	}
 	type FileProcessingService struct {
 		fileProcessingService
@@ -117,7 +135,13 @@ func RegisterFileProcessingServiceHandler(s server.Server, hdlr FileProcessingSe
 	}))
 	opts = append(opts, api.WithEndpoint(&api.Endpoint{
 		Name:    "FileProcessingService.GetFileMetadata",
-		Path:    []string{"/get/{file_id}"},
+		Path:    []string{"/get/{file_metadata_id}"},
+		Method:  []string{"GET"},
+		Handler: "rpc",
+	}))
+	opts = append(opts, api.WithEndpoint(&api.Endpoint{
+		Name:    "FileProcessingService.DownloadFile",
+		Path:    []string{"/download/{file_download_id}"},
 		Method:  []string{"GET"},
 		Handler: "rpc",
 	}))
@@ -134,4 +158,8 @@ func (h *fileProcessingServiceHandler) FileProcessing(ctx context.Context, req *
 
 func (h *fileProcessingServiceHandler) GetFileMetadata(ctx context.Context, req *FileMetadataRequest, rsp *FileMetadataResponse) error {
 	return h.FileProcessingServiceHandler.GetFileMetadata(ctx, req, rsp)
+}
+
+func (h *fileProcessingServiceHandler) DownloadFile(ctx context.Context, req *FileDownloadRequest, rsp *FileDownloadResponse) error {
+	return h.FileProcessingServiceHandler.DownloadFile(ctx, req, rsp)
 }

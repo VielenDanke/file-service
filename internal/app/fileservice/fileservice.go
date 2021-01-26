@@ -10,6 +10,7 @@ import (
 	jsoncodec "github.com/unistack-org/micro-codec-json/v3"
 	fileconfig "github.com/unistack-org/micro-config-file/v3"
 	httpsrv "github.com/unistack-org/micro-server-http/v3"
+	s3store "github.com/unistack-org/micro-store-s3/v3"
 	"github.com/unistack-org/micro/v3"
 	"github.com/unistack-org/micro/v3/client"
 	"github.com/unistack-org/micro/v3/config"
@@ -17,6 +18,7 @@ import (
 	"github.com/unistack-org/micro/v3/server"
 	"github.com/vielendanke/file-service/configs"
 	"github.com/vielendanke/file-service/internal/app/fileservice/handlers"
+	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
 	pb "github.com/vielendanke/file-service/proto"
 )
@@ -37,6 +39,23 @@ func initDB(name, url string, errCh chan<- error) <-chan *sqlx.DB {
 // StartFileService ...
 func StartFileService(ctx context.Context, errCh chan<- error) {
 	cfg := configs.NewConfig("file-service", "1.0")
+	s3 := s3store.NewStore(
+		s3store.AccessKey("Q3AM3UQ867SPQQA43P2F"),
+		s3store.SecretKey("zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
+		s3store.Endpoint("https://play.minio.io"),
+	)
+	if err := s3.Init(); err != nil {
+		errCh <- err
+	}
+	if err := s3.Connect(ctx); err != nil {
+		errCh <- err
+	}
+	defer func() {
+		err := s3.Disconnect(ctx)
+		if err != nil {
+			logger.Errorf(ctx, "Error during disconnect from s3, %v", err)
+		}
+	}()
 
 	if err := config.Load(ctx,
 		config.NewConfig(
@@ -57,6 +76,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 		micro.Context(ctx),
 		micro.Name("file-service"),
 		micro.Version("1.0"),
+		micro.Store(s3),
 	)
 	svc := micro.NewService(options...)
 
@@ -75,10 +95,15 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 			client.ContentType("application/json"),
 			client.Codec("application/json", jsoncodec.NewCodec()),
 		)),
+		micro.Store(s3),
 	); err != nil {
 		errCh <- err
 	}
 	router := mux.NewRouter()
+
+	ctm := middlewares.NewContentTypeMiddleware("application/json")
+
+	router.Use(ctm.ContentTypeMiddleware)
 
 	router.NotFoundHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		logger.Infof(ctx, "Not found, %v\n", r.URL)
@@ -90,7 +115,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	db := <-initDB("postgres", "postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable", errCh)
 
-	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), db)
+	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), db, svc.Options().Store)
 
 	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec())
 

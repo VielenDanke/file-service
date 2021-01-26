@@ -16,7 +16,31 @@
     "application/json"
   ],
   "paths": {
-    "/get/{fileId}": {
+    "/download/{fileDownloadId}": {
+      "get": {
+        "operationId": "FileProcessingService_DownloadFile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/fileserviceFileDownloadResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fileDownloadId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FileProcessingService"
+        ]
+      }
+    },
+    "/get/{fileMetadataId}": {
       "get": {
         "operationId": "FileProcessingService_GetFileMetadata",
         "responses": {
@@ -29,7 +53,7 @@
         },
         "parameters": [
           {
-            "name": "fileId",
+            "name": "fileMetadataId",
             "in": "path",
             "required": true,
             "type": "string"
@@ -58,6 +82,9 @@
     }
   },
   "definitions": {
+    "fileserviceFileDownloadResponse": {
+      "type": "object"
+    },
     "fileserviceFileMetadataResponse": {
       "type": "object"
     },

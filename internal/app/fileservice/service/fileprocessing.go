@@ -1,10 +1,15 @@
 package service
 
-import "github.com/vielendanke/file-service/internal/app/fileservice/model"
+import (
+	"context"
+
+	"github.com/vielendanke/file-service/internal/app/fileservice/model"
+)
 
 // FileProcessingService ...
 type FileProcessingService interface {
-	StoreFile(f model.FileModel) error
-	SaveFileData(f model.FileModel) (string, error)
-	GetFileMetadata(id string) (string, error)
+	StoreFile(ctx context.Context, f model.FileModel) error
+	SaveFileData(ctx context.Context, f model.FileModel) error
+	GetFileMetadata(ctx context.Context, id string) (string, error)
+	DownloadFile(ctx context.Context, id string) ([]byte, string, error)
 }

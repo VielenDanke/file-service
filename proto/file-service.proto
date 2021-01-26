@@ -15,11 +15,19 @@ message FileProcessingResponse {
 }
 
 message FileMetadataRequest {
-    string file_id = 1;
+    string file_metadata_id = 1;
 }
 
 message FileMetadataResponse {
     
+}
+
+message FileDownloadRequest {
+    string file_download_id = 1;
+}
+
+message FileDownloadResponse {
+
 }
 
 service FileProcessingService {
@@ -30,7 +38,12 @@ service FileProcessingService {
     };
     rpc GetFileMetadata(FileMetadataRequest) returns (FileMetadataResponse) {
         option (google.api.http) = {
-            get: "/get/{file_id}"
+            get: "/get/{file_metadata_id}"
+        };
+    };
+    rpc DownloadFile(FileDownloadRequest) returns (FileDownloadResponse) {
+        option (google.api.http) = {
+            get: "/download/{file_download_id}"
         };
     };
 }
