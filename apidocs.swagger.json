@@ -1,0 +1,73 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "proto/file-service.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "FileProcessingService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/get/{fileId}": {
+      "get": {
+        "operationId": "FileProcessingService_GetFileMetadata",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/fileserviceFileMetadataResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FileProcessingService"
+        ]
+      }
+    },
+    "/upload": {
+      "post": {
+        "operationId": "FileProcessingService_FileProcessing",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/fileserviceFileProcessingResponse"
+            }
+          }
+        },
+        "tags": [
+          "FileProcessingService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "fileserviceFileMetadataResponse": {
+      "type": "object"
+    },
+    "fileserviceFileProcessingResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

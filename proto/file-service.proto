@@ -1,0 +1,36 @@
+syntax="proto3";
+
+package fileservice;
+option go_package = "proto;pb";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+message FileProcessingRequest {
+    string filename = 1;
+    bytes file = 2;
+}
+
+message FileProcessingResponse {
+    string result = 1;
+}
+
+message FileMetadataRequest {
+    string file_id = 1;
+}
+
+message FileMetadataResponse {
+    
+}
+
+service FileProcessingService {
+    rpc FileProcessing(FileProcessingRequest) returns (FileProcessingResponse) {
+        option (google.api.http) = {
+            post: "/upload";
+        };
+    };
+    rpc GetFileMetadata(FileMetadataRequest) returns (FileMetadataResponse) {
+        option (google.api.http) = {
+            get: "/get/{file_id}"
+        };
+    };
+}
