@@ -57,6 +57,7 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 // SaveFileData ...
 func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
+	PrepareMetadata(awsFile.Metadata, []string{"docType", "docClass", "docNum"})
 	jsonMetadata, err := aps.codec.Marshal(awsFile.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("Error while marshalling metadata, %v", err)
@@ -104,4 +105,17 @@ func (aps *AWSProcessingService) DownloadFile(ctx context.Context, id string) ([
 	default:
 		return file, filename, nil
 	}
+}
+
+// UpdateFileMetadata ...
+func (aps *AWSProcessingService) UpdateFileMetadata(ctx context.Context, metadata map[string]interface{}, id string) error {
+	PrepareMetadata(metadata, []string{"docClass", "docType", "docNum"})
+	jsonMetadata, err := aps.codec.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("Error marshalling metadata: %v", err)
+	}
+	if err := aps.fileRepository.UpdateFileMetadataByID(ctx, string(jsonMetadata), id); err != nil {
+		return err
+	}
+	return nil
 }

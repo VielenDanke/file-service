@@ -7,7 +7,8 @@ type FileModel interface {
 	GetFile() io.Reader
 	GetFileID() string
 	GetFileName() string
-	GetIIN() string
-	GetFileLink() string
+	GetDocClass() string
+	GetDocType() string
+	GetDocNum() string
 	GetMetadata() map[string]interface{}
 }

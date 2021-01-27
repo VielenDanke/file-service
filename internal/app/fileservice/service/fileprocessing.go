@@ -12,4 +12,5 @@ type FileProcessingService interface {
 	SaveFileData(ctx context.Context, f model.FileModel) error
 	GetFileMetadata(ctx context.Context, id string) (string, error)
 	DownloadFile(ctx context.Context, id string) ([]byte, string, error)
+	UpdateFileMetadata(ctx context.Context, metadata map[string]interface{}, id string) error
 }

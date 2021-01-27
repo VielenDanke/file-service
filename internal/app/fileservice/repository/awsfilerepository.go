@@ -24,15 +24,21 @@ func NewAWSFileRepository(db *sqlx.DB) FileRepository {
 func (afr *AWSFileRepository) SaveFile(ctx context.Context, f model.FileModel, metadata string) error {
 	awsFile := f.(*model.AWSModel)
 	tx := afr.db.MustBegin()
-	res := tx.MustExecContext(ctx, "INSERT INTO FILES(ID, FILE_NAME, IIN, FILE_LINK, METADATA) VALUES($1, $2, $3, $4, $5)",
-		awsFile.GetFileID(), awsFile.GetFileName(), awsFile.GetIIN(), awsFile.GetFileLink(), metadata,
+	res, err := tx.ExecContext(ctx, "INSERT INTO FILES(ID, FILE_NAME, DOC_CLASS, DOC_TYPE, DOC_NUM, METADATA) VALUES($1, $2, $3, $4, $5, $6)",
+		awsFile.GetFileID(), awsFile.GetFileName(), awsFile.GetDocClass(), awsFile.GetDocType(), awsFile.GetDocNum(), metadata,
 	)
-	num, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("Error during rows inserter, %v", err)
+		tx.Rollback()
+		return fmt.Errorf("Error inserting new file to DB, %v", err)
 	}
-	if num == 0 {
-		return fmt.Errorf("No insertions found, %d", num)
+	rows, rowsErr := res.RowsAffected()
+	if rowsErr != nil {
+		tx.Rollback()
+		return fmt.Errorf("Error during rows inserter, %v", rowsErr)
+	}
+	if rows == 0 {
+		tx.Rollback()
+		return fmt.Errorf("No insertions found, %d", rows)
 	}
 	tx.Commit()
 	return nil
@@ -54,4 +60,25 @@ func (afr *AWSFileRepository) FindFileNameByID(ctx context.Context, id string) (
 		return "", fmt.Errorf("Error fetching filename from DB, %v", row)
 	}
 	return filename, nil
+}
+
+// UpdateFileMetadataByID ...
+func (afr *AWSFileRepository) UpdateFileMetadataByID(ctx context.Context, metadata, id string) error {
+	tx := afr.db.MustBegin()
+	res, err := tx.ExecContext(ctx, "UPDATE FILES SET METADATA=$1 WHERE ID=$2", metadata, id)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("Error updating metadata, %v", err)
+	}
+	rows, rowsErr := res.RowsAffected()
+	if rowsErr != nil {
+		tx.Rollback()
+		return fmt.Errorf("Error inserting data in DB, %v", rowsErr)
+	}
+	if rows == 0 {
+		tx.Rollback()
+		return fmt.Errorf("No insertions found")
+	}
+	tx.Commit()
+	return nil
 }

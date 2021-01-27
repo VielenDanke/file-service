@@ -8,6 +8,7 @@ import (
 	"github.com/unistack-org/micro/v3/codec"
 	"github.com/vielendanke/file-service/internal/app/fileservice/model"
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
+	"github.com/vielendanke/file-service/internal/app/fileservice/validations"
 )
 
 // FileServiceHandler ...
@@ -27,41 +28,45 @@ func NewFileServiceHandler(srv service.FileProcessingService, codec codec.Codec)
 // FileProcessing ...
 func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(10 << 20)
-	file, _, err := r.FormFile("file")
+	file, header, err := r.FormFile("file")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fh.codec.Write(w, nil, fmt.Errorf("Failed to parse request file, %v", err))
+		fh.codec.Write(w, nil, fmt.Sprintf("Failed to parse request file, %v", err))
 		return
 	}
-	queryValues := r.URL.Query()
-	if len(queryValues["iin"]) == 0 || len(queryValues["filename"]) == 0 ||
-		len(queryValues["iin"][0]) < 12 || len(queryValues["filename"][0]) <= 0 {
+	jsonBody := r.FormValue("body")
+	if jsonBody == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		fh.codec.Write(w, nil, fmt.Errorf("IIN or Filename cannot be empty"))
+		fh.codec.Write(w, nil, fmt.Sprintf("Bad request, body is empty"))
 		return
 	}
-	metadata := make(map[string]interface{})
-	for k, v := range queryValues {
-		if k == "iin" || k == "filename" {
-			continue
-		}
-		if len(v) == 1 {
-			metadata[k] = v[0]
-			continue
-		}
-		metadata[k] = v
+	properties := make(map[string]interface{})
+	if err := fh.codec.Unmarshal([]byte(jsonBody), &properties); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fh.codec.Write(w, nil, fmt.Sprintf("Error unmarshalling request, %v", err))
+		return
+	}
+	if err := validations.ValidateJSONDocumentRequest(properties); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fh.codec.Write(w, nil, err.Error())
+		return
 	}
 	awsFile := &model.AWSModel{
-		IIN: queryValues["iin"][0], FileName: queryValues["filename"][0], Metadata: metadata, File: file,
+		File:     file,
+		FileName: header.Filename,
+		DocClass: properties["docClass"].(string),
+		DocType:  properties["docType"].(string),
+		DocNum:   properties["docNum"].(string),
+		Metadata: properties,
 	}
 	if err := fh.service.StoreFile(r.Context(), awsFile); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fh.codec.Write(w, nil, fmt.Errorf("Error storing file to s3, %v", err))
+		fh.codec.Write(w, nil, fmt.Sprintf("Error storing file to s3, %v", err))
 		return
 	}
 	if saveErr := fh.service.SaveFileData(r.Context(), awsFile); saveErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fh.codec.Write(w, nil, fmt.Errorf("Error saving file metadata to DB, %v", saveErr))
+		fh.codec.Write(w, nil, fmt.Sprintf("Error saving file metadata to DB, %v", saveErr))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -70,7 +75,7 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 
 // GetFileMetadata ...
 func (fh *FileServiceHandler) GetFileMetadata(w http.ResponseWriter, r *http.Request) {
-	id, ok := mux.Vars(r)["file_metadata_id"]
+	id, ok := mux.Vars(r)["metadata_id"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -78,7 +83,7 @@ func (fh *FileServiceHandler) GetFileMetadata(w http.ResponseWriter, r *http.Req
 	metadata, err := fh.service.GetFileMetadata(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fh.codec.Write(w, nil, err)
+		fh.codec.Write(w, nil, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -90,15 +95,46 @@ func (fh *FileServiceHandler) DownloadFile(w http.ResponseWriter, r *http.Reques
 	id, ok := mux.Vars(r)["file_download_id"]
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
+		fh.codec.Write(w, nil, "FileID is empty")
 		return
 	}
 	file, filename, err := fh.service.DownloadFile(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fh.codec.Write(w, nil, err)
+		fh.codec.Write(w, nil, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
 	w.Write(file)
+}
+
+// UpdateFileMetadata ...
+func (fh *FileServiceHandler) UpdateFileMetadata(w http.ResponseWriter, r *http.Request) {
+	id, ok := mux.Vars(r)["update_metadata_id"]
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		fh.codec.Write(w, nil, fmt.Sprintf("File ID not found"))
+		return
+	}
+	properties := make(map[string]interface{})
+	err := fh.codec.ReadBody(r.Body, &properties)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fh.codec.Write(w, nil, fmt.Sprintf("Error reading body, %v", err))
+		return
+	}
+	defer r.Body.Close()
+	if vErr := validations.ValidateJSONDocumentRequest(properties); vErr != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fh.codec.Write(w, nil, fmt.Sprintf("Error during validation, %v", vErr))
+		return
+	}
+	if uErr := fh.service.UpdateFileMetadata(r.Context(), properties, id); uErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fh.codec.Write(w, nil, fmt.Sprintf("Error updating metadata, %v", uErr))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fh.codec.Write(w, nil, properties)
 }

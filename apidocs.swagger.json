@@ -40,20 +40,44 @@
         ]
       }
     },
-    "/get/{fileMetadataId}": {
+    "/metadata/{metadataId}": {
       "get": {
         "operationId": "FileProcessingService_GetFileMetadata",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/fileserviceFileMetadataResponse"
+              "$ref": "#/definitions/fileserviceGetMetadataResponse"
             }
           }
         },
         "parameters": [
           {
-            "name": "fileMetadataId",
+            "name": "metadataId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "FileProcessingService"
+        ]
+      }
+    },
+    "/metadata/{updateMetadataId}": {
+      "put": {
+        "operationId": "FileProcessingService_UpdateFileMetadata",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/fileserviceUpdateMetadataResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "updateMetadataId",
             "in": "path",
             "required": true,
             "type": "string"
@@ -85,9 +109,6 @@
     "fileserviceFileDownloadResponse": {
       "type": "object"
     },
-    "fileserviceFileMetadataResponse": {
-      "type": "object"
-    },
     "fileserviceFileProcessingResponse": {
       "type": "object",
       "properties": {
@@ -95,6 +116,12 @@
           "type": "string"
         }
       }
+    },
+    "fileserviceGetMetadataResponse": {
+      "type": "object"
+    },
+    "fileserviceUpdateMetadataResponse": {
+      "type": "object"
     }
   }
 }

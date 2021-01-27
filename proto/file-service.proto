@@ -14,11 +14,11 @@ message FileProcessingResponse {
     string result = 1;
 }
 
-message FileMetadataRequest {
-    string file_metadata_id = 1;
+message GetMetadataRequest {
+    string metadata_id = 1;
 }
 
-message FileMetadataResponse {
+message GetMetadataResponse {
     
 }
 
@@ -30,20 +30,33 @@ message FileDownloadResponse {
 
 }
 
+message UpdateMetadataRequest {
+    string update_metadata_id = 1;
+}
+
+message UpdateMetadataResponse {
+
+}
+
 service FileProcessingService {
     rpc FileProcessing(FileProcessingRequest) returns (FileProcessingResponse) {
         option (google.api.http) = {
             post: "/upload";
         };
     };
-    rpc GetFileMetadata(FileMetadataRequest) returns (FileMetadataResponse) {
+    rpc GetFileMetadata(GetMetadataRequest) returns (GetMetadataResponse) {
         option (google.api.http) = {
-            get: "/get/{file_metadata_id}"
+            get: "/metadata/{metadata_id}"
         };
     };
     rpc DownloadFile(FileDownloadRequest) returns (FileDownloadResponse) {
         option (google.api.http) = {
             get: "/download/{file_download_id}"
+        };
+    };
+    rpc UpdateFileMetadata(UpdateMetadataRequest) returns (UpdateMetadataResponse) {
+        option (google.api.http) = {
+            put: "/metadata/{update_metadata_id}"  
         };
     };
 }
