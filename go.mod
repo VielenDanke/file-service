@@ -3,12 +3,14 @@ module github.com/vielendanke/file-service
 go 1.15
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.5
 	github.com/gorilla/mux v1.7.3
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.1.0
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/lib/pq v1.9.0
+	github.com/stretchr/testify v1.7.0
 	github.com/unistack-org/micro-client-http/v3 v3.1.2
 	github.com/unistack-org/micro-codec-json/v3 v3.1.1
 	github.com/unistack-org/micro-config-file/v3 v3.1.2
