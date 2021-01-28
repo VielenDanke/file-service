@@ -4,9 +4,9 @@ import "fmt"
 
 // ValidateJSONDocumentRequest ...
 func ValidateJSONDocumentRequest(properties map[string]interface{}) error {
-	docClassProperty := "docClass"
-	docTypeProperty := "docType"
-	docNumProperty := "docNum"
+	docClassProperty := "class"
+	docTypeProperty := "type"
+	docNumProperty := "number"
 
 	_, isDocClassExists := properties[docClassProperty]
 	_, isDocTypeExists := properties[docTypeProperty]

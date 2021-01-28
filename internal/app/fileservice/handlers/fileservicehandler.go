@@ -54,9 +54,9 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 	awsFile := &model.AWSModel{
 		File:     file,
 		FileName: header.Filename,
-		DocClass: properties["docClass"].(string),
-		DocType:  properties["docType"].(string),
-		DocNum:   properties["docNum"].(string),
+		DocClass: properties["class"].(string),
+		DocType:  properties["type"].(string),
+		DocNum:   properties["number"].(string),
 		Metadata: properties,
 	}
 	if err := fh.service.StoreFile(r.Context(), awsFile); err != nil {
@@ -125,11 +125,6 @@ func (fh *FileServiceHandler) UpdateFileMetadata(w http.ResponseWriter, r *http.
 		return
 	}
 	defer r.Body.Close()
-	if vErr := validations.ValidateJSONDocumentRequest(properties); vErr != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fh.codec.Write(w, nil, fmt.Sprintf("Error during validation, %v", vErr))
-		return
-	}
 	if uErr := fh.service.UpdateFileMetadata(r.Context(), properties, id); uErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fh.codec.Write(w, nil, fmt.Sprintf("Error updating metadata, %v", uErr))
