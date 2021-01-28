@@ -72,8 +72,20 @@ func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileM
 }
 
 // GetFileMetadata ...
-func (aps *AWSProcessingService) GetFileMetadata(ctx context.Context, id string) (string, error) {
-	return aps.fileRepository.FindFileMetadataByID(ctx, id)
+func (aps *AWSProcessingService) GetFileMetadata(ctx context.Context, id string) (map[string]interface{}, error) {
+	properties, err := aps.fileRepository.FindFileMetadataByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	metadata := properties["metadata"]
+	jsonMap := make(map[string]interface{})
+	if err := aps.codec.Unmarshal([]byte(metadata), &jsonMap); err != nil {
+		return nil, fmt.Errorf("Error unmarshalling JSONB, %v", err)
+	}
+	jsonMap["type"] = properties["type"]
+	jsonMap["class"] = properties["class"]
+	jsonMap["number"] = properties["number"]
+	return jsonMap, nil
 }
 
 // DownloadFile ...

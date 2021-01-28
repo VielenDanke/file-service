@@ -87,7 +87,7 @@ func (fh *FileServiceHandler) GetFileMetadata(w http.ResponseWriter, r *http.Req
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(metadata))
+	fh.codec.Write(w, nil, metadata)
 }
 
 // DownloadFile ...

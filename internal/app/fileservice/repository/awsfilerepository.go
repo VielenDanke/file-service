@@ -45,12 +45,24 @@ func (afr *AWSFileRepository) SaveFile(ctx context.Context, f model.FileModel, m
 }
 
 // FindFileMetadataByID ...
-func (afr *AWSFileRepository) FindFileMetadataByID(ctx context.Context, id string) (string, error) {
+func (afr *AWSFileRepository) FindFileMetadataByID(ctx context.Context, id string) (map[string]string, error) {
 	jsonMetadata := ""
-	if err := afr.db.QueryRowContext(ctx, "SELECT METADATA FROM FILES WHERE ID=$1", id).Scan(&jsonMetadata); err != nil {
-		return "", fmt.Errorf("Error while reading from DB, %v", err)
+	docType := ""
+	docClass := ""
+	docNum := ""
+	if err := afr.db.QueryRowContext(
+		ctx,
+		"SELECT DOC_CLASS, DOC_TYPE, DOC_NUM, METADATA FROM FILES WHERE ID=$1",
+		id,
+	).Scan(&docClass, &docType, &docNum, &jsonMetadata); err != nil {
+		return nil, fmt.Errorf("Error while reading from DB, %v", err)
 	}
-	return jsonMetadata, nil
+	properties := make(map[string]string)
+	properties["type"] = docType
+	properties["class"] = docClass
+	properties["number"] = docNum
+	properties["metadata"] = jsonMetadata
+	return properties, nil
 }
 
 // FindFileNameByID ...

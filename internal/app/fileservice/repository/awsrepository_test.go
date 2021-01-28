@@ -108,14 +108,18 @@ func TestFindFileMetadataByID(t *testing.T) {
 	testID := "testID"
 	testData := "testData"
 
-	mock.ExpectQuery("SELECT METADATA FROM FILES").WithArgs(testID).WillReturnRows(sqlmock.NewRows([]string{"METADATA"}).AddRow(testData))
+	mock.ExpectQuery("SELECT").WithArgs(testID).WillReturnRows(
+		sqlmock.NewRows(
+			[]string{"DOC_CLASS", "DOC_TYPE", "DOC_NUM", "METADATA"},
+		).AddRow(testData, testData, testData, testData))
 
 	res, err := awsRepo.FindFileMetadataByID(context.Background(), testID)
 	if err != nil {
 		t.Fatalf("Unexpected error while fetching metadata by ID, %v", err)
 	}
 
-	assert.Equal(t, testData, res)
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
 
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("Results are not expected: %v", err)
@@ -125,7 +129,7 @@ func TestFindFileMetadataByID(t *testing.T) {
 func TestFindFileMetadataByID_NoRowsFound(t *testing.T) {
 	testID := "testID"
 
-	mock.ExpectQuery("SELECT METADATA FROM FILES").WithArgs(testID).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery("SELECT").WithArgs(testID).WillReturnError(sql.ErrNoRows)
 
 	_, err := awsRepo.FindFileMetadataByID(context.Background(), testID)
 

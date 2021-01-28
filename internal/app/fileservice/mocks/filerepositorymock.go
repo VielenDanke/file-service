@@ -15,14 +15,16 @@ type FileRepository struct {
 }
 
 // FindFileMetadataByID provides a mock function with given fields: ctx, id
-func (_m *FileRepository) FindFileMetadataByID(ctx context.Context, id string) (string, error) {
+func (_m *FileRepository) FindFileMetadataByID(ctx context.Context, id string) (map[string]string, error) {
 	ret := _m.Called(ctx, id)
 
-	var r0 string
-	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
+	var r0 map[string]string
+	if rf, ok := ret.Get(0).(func(context.Context, string) map[string]string); ok {
 		r0 = rf(ctx, id)
 	} else {
-		r0 = ret.Get(0).(string)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
 	}
 
 	var r1 error
