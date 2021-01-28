@@ -21,6 +21,7 @@ import (
 	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
 	"github.com/vielendanke/file-service/internal/app/fileservice/repository"
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
+	"github.com/vielendanke/file-service/internal/app/fileservice/validations"
 	pb "github.com/vielendanke/file-service/proto"
 )
 
@@ -120,7 +121,9 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), fr, svc.Options().Store)
 
-	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec())
+	docValidation := validations.NewDocumentValidation()
+
+	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec(), docValidation)
 
 	if err := configs.ConfigureHandlerToEndpoints(router, handler, endpoints); err != nil {
 		errCh <- err

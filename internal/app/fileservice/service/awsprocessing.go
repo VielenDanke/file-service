@@ -57,7 +57,7 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 // SaveFileData ...
 func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
-	PrepareMetadata(awsFile.Metadata, []string{"type", "class", "num"})
+	PrepareMetadata(awsFile.Metadata, []string{"type", "class", "number"})
 	jsonMetadata, err := aps.codec.Marshal(awsFile.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("Error while marshalling metadata, %v", err)

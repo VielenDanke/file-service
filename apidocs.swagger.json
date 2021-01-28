@@ -16,7 +16,23 @@
     "application/json"
   ],
   "paths": {
-    "/download/{fileDownloadId}": {
+    "/files": {
+      "post": {
+        "operationId": "FileProcessingService_FileProcessing",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/fileserviceFileProcessingResponse"
+            }
+          }
+        },
+        "tags": [
+          "FileProcessingService"
+        ]
+      }
+    },
+    "/files/{fileDownloadId}": {
       "get": {
         "operationId": "FileProcessingService_DownloadFile",
         "responses": {
@@ -83,22 +99,6 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "FileProcessingService"
-        ]
-      }
-    },
-    "/upload": {
-      "post": {
-        "operationId": "FileProcessingService_FileProcessing",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/fileserviceFileProcessingResponse"
-            }
-          }
-        },
         "tags": [
           "FileProcessingService"
         ]

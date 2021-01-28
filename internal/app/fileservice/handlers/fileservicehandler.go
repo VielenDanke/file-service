@@ -13,15 +13,17 @@ import (
 
 // FileServiceHandler ...
 type FileServiceHandler struct {
-	codec   codec.Codec
-	service service.FileProcessingService
+	codec     codec.Codec
+	service   service.FileProcessingService
+	validator validations.Validator
 }
 
 // NewFileServiceHandler ...
-func NewFileServiceHandler(srv service.FileProcessingService, codec codec.Codec) *FileServiceHandler {
+func NewFileServiceHandler(srv service.FileProcessingService, codec codec.Codec, validator validations.Validator) *FileServiceHandler {
 	return &FileServiceHandler{
-		service: srv,
-		codec:   codec,
+		service:   srv,
+		codec:     codec,
+		validator: validator,
 	}
 }
 
@@ -46,7 +48,7 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 		fh.codec.Write(w, nil, fmt.Sprintf("Error unmarshalling request, %v", err))
 		return
 	}
-	if err := validations.ValidateJSONDocumentRequest(properties); err != nil {
+	if err := fh.validator.ValidateMap(properties); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fh.codec.Write(w, nil, err.Error())
 		return
@@ -69,7 +71,7 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 		fh.codec.Write(w, nil, fmt.Sprintf("Error saving file metadata to DB, %v", saveErr))
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	fh.codec.Write(w, nil, awsFile.GetFileID())
 }
 

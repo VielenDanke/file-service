@@ -41,7 +41,7 @@ func NewFileProcessingServiceEndpoints() []*api.Endpoint {
 	return []*api.Endpoint{
 		&api.Endpoint{
 			Name:    "FileProcessingService.FileProcessing",
-			Path:    []string{"/upload"},
+			Path:    []string{"/files"},
 			Method:  []string{"POST"},
 			Body:    "",
 			Handler: "rpc",
@@ -54,7 +54,7 @@ func NewFileProcessingServiceEndpoints() []*api.Endpoint {
 		},
 		&api.Endpoint{
 			Name:    "FileProcessingService.DownloadFile",
-			Path:    []string{"/download/{file_download_id}"},
+			Path:    []string{"/files/{file_download_id}"},
 			Method:  []string{"GET"},
 			Handler: "rpc",
 		},
@@ -147,7 +147,7 @@ func RegisterFileProcessingServiceHandler(s server.Server, hdlr FileProcessingSe
 	h := &fileProcessingServiceHandler{hdlr}
 	opts = append(opts, api.WithEndpoint(&api.Endpoint{
 		Name:    "FileProcessingService.FileProcessing",
-		Path:    []string{"/upload"},
+		Path:    []string{"/files"},
 		Method:  []string{"POST"},
 		Body:    "",
 		Handler: "rpc",
@@ -160,7 +160,7 @@ func RegisterFileProcessingServiceHandler(s server.Server, hdlr FileProcessingSe
 	}))
 	opts = append(opts, api.WithEndpoint(&api.Endpoint{
 		Name:    "FileProcessingService.DownloadFile",
-		Path:    []string{"/download/{file_download_id}"},
+		Path:    []string{"/files/{file_download_id}"},
 		Method:  []string{"GET"},
 		Handler: "rpc",
 	}))

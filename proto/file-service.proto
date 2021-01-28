@@ -41,7 +41,7 @@ message UpdateMetadataResponse {
 service FileProcessingService {
     rpc FileProcessing(FileProcessingRequest) returns (FileProcessingResponse) {
         option (google.api.http) = {
-            post: "/upload";
+            post: "/files";
         };
     };
     rpc GetFileMetadata(GetMetadataRequest) returns (GetMetadataResponse) {
@@ -51,7 +51,7 @@ service FileProcessingService {
     };
     rpc DownloadFile(FileDownloadRequest) returns (FileDownloadResponse) {
         option (google.api.http) = {
-            get: "/download/{file_download_id}"
+            get: "/files/{file_download_id}"
         };
     };
     rpc UpdateFileMetadata(UpdateMetadataRequest) returns (UpdateMetadataResponse) {
