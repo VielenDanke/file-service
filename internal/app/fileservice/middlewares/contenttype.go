@@ -9,7 +9,9 @@ type ContentTypeMiddleware struct {
 
 // NewContentTypeMiddleware ...
 func NewContentTypeMiddleware(contentType string) *ContentTypeMiddleware {
-	return &ContentTypeMiddleware{contentType: contentType}
+	return &ContentTypeMiddleware{
+		contentType: contentType,
+	}
 }
 
 // ContentTypeMiddleware ...

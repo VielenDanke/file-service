@@ -19,7 +19,6 @@ import (
 	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
 	"github.com/vielendanke/file-service/internal/app/fileservice/mocks"
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
-	"github.com/vielendanke/file-service/internal/app/fileservice/validations"
 	pb "github.com/vielendanke/file-service/proto"
 )
 
@@ -47,8 +46,8 @@ func prepareMultipartRequest(jsonBody map[string]interface{}) (*multipart.Writer
 	return writer, body, nil
 }
 
-func preparteRouter(service service.FileProcessingService, codec codec.Codec, validator validations.Validator) (*mux.Router, error) {
-	handler := handlers.NewFileServiceHandler(service, codec, validator)
+func preparteRouter(service service.FileProcessingService, codec codec.Codec) (*mux.Router, error) {
+	handler := handlers.NewFileServiceHandler(service, codec)
 	router := mux.NewRouter()
 	router.Use(middlewares.NewContentTypeMiddleware("application/json").ContentTypeMiddleware)
 	endpoints := pb.NewFileProcessingServiceEndpoints()
@@ -71,7 +70,7 @@ func TestFileServiceHandler_FileProcessing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec(), validations.NewDocumentValidation())
+	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec())
 	if routerErr != nil {
 		t.Fatal(err.Error())
 	}
@@ -108,7 +107,7 @@ func TestFileServiceHandler_FileProcessing_FileServiceStoreFileReturnError(t *te
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec(), validations.NewDocumentValidation())
+	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec())
 	if routerErr != nil {
 		t.Fatal(routerErr.Error())
 	}
@@ -142,7 +141,7 @@ func TestFileServiceHandler_FileProcessing_FileServiceSaveFileDataReturnError(t 
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec(), validations.NewDocumentValidation())
+	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec())
 	if routerErr != nil {
 		t.Fatal(routerErr.Error())
 	}
@@ -167,7 +166,7 @@ func TestFileServiceHandler_FileProcessing_FileServiceSaveFileDataReturnError(t 
 func TestFileServiceHandler_FileProcessing_NoFile(t *testing.T) {
 	mockService := new(mocks.FileProcessingService)
 
-	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec(), validations.NewDocumentValidation())
+	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec())
 	if routerErr != nil {
 		t.Fatal(routerErr.Error())
 	}
@@ -194,7 +193,7 @@ func TestFileServiceHandler_FileProcessing_NoBody(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec(), validations.NewDocumentValidation())
+	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec())
 	if routerErr != nil {
 		t.Fatal(routerErr.Error())
 	}
@@ -224,7 +223,7 @@ func TestFileServiceHandler_FileProcessing_NotValidBody(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec(), validations.NewDocumentValidation())
+	router, routerErr := preparteRouter(mockService, jsoncodec.NewCodec())
 	if routerErr != nil {
 		t.Fatal(routerErr.Error())
 	}

@@ -13,17 +13,15 @@ import (
 
 // FileServiceHandler ...
 type FileServiceHandler struct {
-	codec     codec.Codec
-	service   service.FileProcessingService
-	validator validations.Validator
+	codec   codec.Codec
+	service service.FileProcessingService
 }
 
 // NewFileServiceHandler ...
-func NewFileServiceHandler(srv service.FileProcessingService, codec codec.Codec, validator validations.Validator) *FileServiceHandler {
+func NewFileServiceHandler(srv service.FileProcessingService, codec codec.Codec) *FileServiceHandler {
 	return &FileServiceHandler{
-		service:   srv,
-		codec:     codec,
-		validator: validator,
+		service: srv,
+		codec:   codec,
 	}
 }
 
@@ -48,7 +46,7 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 		fh.codec.Write(w, nil, fmt.Sprintf("Error unmarshalling request, %v", err))
 		return
 	}
-	if err := fh.validator.ValidateMap(properties); err != nil {
+	if err := validations.ValidateJSONDocumentRequest(properties); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fh.codec.Write(w, nil, err.Error())
 		return

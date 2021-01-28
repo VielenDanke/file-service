@@ -2,17 +2,8 @@ package validations
 
 import "fmt"
 
-// DocumentValidation ...
-type DocumentValidation struct {
-}
-
-// NewDocumentValidation ...
-func NewDocumentValidation() Validator {
-	return &DocumentValidation{}
-}
-
-// ValidateMap ...
-func (*DocumentValidation) ValidateMap(properties map[string]interface{}) error {
+// ValidateJSONDocumentRequest ...
+func ValidateJSONDocumentRequest(properties map[string]interface{}) error {
 	docClassProperty := "class"
 	docTypeProperty := "type"
 	docNumProperty := "number"
@@ -30,10 +21,5 @@ func (*DocumentValidation) ValidateMap(properties map[string]interface{}) error 
 	if !isDocNumExists {
 		return fmt.Errorf("Bad request. Field %s does not exists", docNumProperty)
 	}
-	return nil
-}
-
-// ValidateStruct ...
-func (*DocumentValidation) ValidateStruct(body interface{}) error {
 	return nil
 }

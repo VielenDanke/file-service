@@ -2,6 +2,7 @@ package fileservice
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -21,7 +22,6 @@ import (
 	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
 	"github.com/vielendanke/file-service/internal/app/fileservice/repository"
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
-	"github.com/vielendanke/file-service/internal/app/fileservice/validations"
 	pb "github.com/vielendanke/file-service/proto"
 )
 
@@ -109,9 +109,15 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	router.NotFoundHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		logger.Infof(ctx, "Not found, %v\n", r.URL)
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusNotFound)
+		rw.Write([]byte(fmt.Sprintf("Not found. Path: %s, Method: %s", r.RequestURI, r.Method)))
 	})
 	router.MethodNotAllowedHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		logger.Infof(ctx, "Method not allowed, %v\n", r.URL)
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		rw.Write([]byte(fmt.Sprintf("Method not allowed, %s", r.Method)))
 	})
 	endpoints := pb.NewFileProcessingServiceEndpoints()
 
@@ -121,9 +127,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), fr, svc.Options().Store)
 
-	docValidation := validations.NewDocumentValidation()
-
-	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec(), docValidation)
+	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec())
 
 	if err := configs.ConfigureHandlerToEndpoints(router, handler, endpoints); err != nil {
 		errCh <- err
