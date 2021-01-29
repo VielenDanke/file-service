@@ -75,11 +75,7 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 
 // GetFileMetadata ...
 func (fh *FileServiceHandler) GetFileMetadata(w http.ResponseWriter, r *http.Request) {
-	id, ok := mux.Vars(r)["metadata_id"]
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	id := mux.Vars(r)["metadata_id"]
 	metadata, err := fh.service.GetFileMetadata(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -92,12 +88,7 @@ func (fh *FileServiceHandler) GetFileMetadata(w http.ResponseWriter, r *http.Req
 
 // DownloadFile ...
 func (fh *FileServiceHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
-	id, ok := mux.Vars(r)["file_download_id"]
-	if !ok {
-		w.WriteHeader(http.StatusBadRequest)
-		fh.codec.Write(w, nil, "FileID is empty")
-		return
-	}
+	id := mux.Vars(r)["file_download_id"]
 	file, filename, err := fh.service.DownloadFile(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -111,13 +102,13 @@ func (fh *FileServiceHandler) DownloadFile(w http.ResponseWriter, r *http.Reques
 
 // UpdateFileMetadata ...
 func (fh *FileServiceHandler) UpdateFileMetadata(w http.ResponseWriter, r *http.Request) {
-	id, ok := mux.Vars(r)["update_metadata_id"]
-	if !ok {
+	id := mux.Vars(r)["update_metadata_id"]
+	properties := make(map[string]interface{})
+	if r.Body == nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fh.codec.Write(w, nil, fmt.Sprintf("File ID not found"))
+		fh.codec.Write(w, nil, "Error, body is nil")
 		return
 	}
-	properties := make(map[string]interface{})
 	err := fh.codec.ReadBody(r.Body, &properties)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
