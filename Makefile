@@ -31,3 +31,7 @@ migrate_up:
 .PHONY: migrate_down
 migrate_down:
 	migrate -database postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable -path migrations down
+
+.PHONY: mockery
+mockery:
+	mockery --name=${MOCK_NAME} --dir=.

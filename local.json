@@ -1,0 +1,27 @@
+{
+    "server": {
+        "addr":":5050",
+        "name":"file-service",
+        "version":"1.0"
+    },
+    "metric": {
+        "addr":":9090"
+    },
+    "database": {
+        "url":"postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable"
+    },
+    "amazon": {
+        "dirty_region": {
+            "region":"",
+            "access_key":"Q3AM3UQ867SPQQA43P2F",
+            "secret_key":"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+            "endpoint":"https://play.minio.io"
+        },
+        "clean_region": {
+            "region":"",
+            "access_key":"Q3AM3UQ867SPQQA43P2F",
+            "secret_key":"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+            "endpoint":"https://play.minio.io"
+        }
+    }
+}

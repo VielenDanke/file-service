@@ -6,7 +6,6 @@ import (
 	context "context"
 
 	mock "github.com/stretchr/testify/mock"
-
 	store "github.com/unistack-org/micro/v3/store"
 )
 
@@ -133,6 +132,20 @@ func (_m *MockStore) List(ctx context.Context, opts ...store.ListOption) ([]stri
 	}
 
 	return r0, r1
+}
+
+// Name provides a mock function with given fields:
+func (_m *MockStore) Name() string {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
 }
 
 // Options provides a mock function with given fields:

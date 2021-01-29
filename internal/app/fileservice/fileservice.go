@@ -11,6 +11,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	httpcli "github.com/unistack-org/micro-client-http/v3"
 	jsoncodec "github.com/unistack-org/micro-codec-json/v3"
+	envconfig "github.com/unistack-org/micro-config-env/v3"
+	fileconfig "github.com/unistack-org/micro-config-file/v3"
 	promwrapper "github.com/unistack-org/micro-metrics-prometheus/v3"
 	httpsrv "github.com/unistack-org/micro-server-http/v3"
 	s3store "github.com/unistack-org/micro-store-s3/v3"
@@ -20,9 +22,10 @@ import (
 	"github.com/unistack-org/micro/v3/config"
 	"github.com/unistack-org/micro/v3/logger"
 	"github.com/unistack-org/micro/v3/server"
-	"github.com/vielendanke/commons/http/middleware"
-	"github.com/vielendanke/commons/stats"
+	"github.com/unistack-org/micro/v3/store"
 	"github.com/vielendanke/file-service/configs"
+	"github.com/vielendanke/file-service/internal/app/fileservice/commons/http/middleware"
+	"github.com/vielendanke/file-service/internal/app/fileservice/commons/stats"
 	"github.com/vielendanke/file-service/internal/app/fileservice/handlers"
 	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
 	"github.com/vielendanke/file-service/internal/app/fileservice/repository"
@@ -45,35 +48,68 @@ func initDB(name, url string, errCh chan<- error) <-chan *sqlx.DB {
 
 // StartFileService ...
 func StartFileService(ctx context.Context, errCh chan<- error) {
-	s3 := s3store.NewStore(
-		s3store.AccessKey("Q3AM3UQ867SPQQA43P2F"),
-		s3store.SecretKey("zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
-		s3store.Endpoint("https://play.minio.io"),
-	)
-	if err := s3.Init(); err != nil {
+	cfg := configs.NewConfig("file-service", "1.0")
+
+	if err := config.Load(ctx,
+		config.NewConfig( // load from defaults
+			config.Struct(cfg), // pass config struct
+		),
+		fileconfig.NewConfig( // load from file
+			config.AllowFail(true),             // that may be not exists
+			config.Struct(cfg),                 // pass config struct
+			config.Codec(jsoncodec.NewCodec()), // file config in json
+			fileconfig.Path("./local.json"),    // nearby file
+		),
+		envconfig.NewConfig( // load from environment
+			config.Struct(cfg), // pass config struct
+		),
+	); err != nil {
 		errCh <- err
 	}
-	if err := s3.Connect(ctx); err != nil {
+
+	s3Dirty := s3store.NewStore(
+		store.Name("dirty_region"),
+		s3store.AccessKey(cfg.Amazon.DirtyRegion.AccessKey),
+		s3store.SecretKey(cfg.Amazon.DirtyRegion.SecretKey),
+		s3store.Endpoint(cfg.Amazon.DirtyRegion.Endpoint),
+	)
+	s3Clean := s3store.NewStore(
+		store.Name("clean_region"),
+		s3store.AccessKey(cfg.Amazon.CleanRegion.AccessKey),
+		s3store.SecretKey(cfg.Amazon.CleanRegion.SecretKey),
+		s3store.Endpoint(cfg.Amazon.CleanRegion.Endpoint),
+	)
+	if err := s3Dirty.Init(); err != nil {
+		errCh <- err
+	}
+	if err := s3Dirty.Connect(ctx); err != nil {
 		errCh <- err
 	}
 	defer func() {
-		err := s3.Disconnect(ctx)
+		err := s3Dirty.Disconnect(ctx)
+		if err != nil {
+			logger.Errorf(ctx, "Error during disconnect from s3, %v", err)
+		}
+	}()
+	if err := s3Clean.Init(); err != nil {
+		errCh <- err
+	}
+	if err := s3Clean.Connect(ctx); err != nil {
+		errCh <- err
+	}
+	defer func() {
+		err := s3Clean.Disconnect(ctx)
 		if err != nil {
 			logger.Errorf(ctx, "Error during disconnect from s3, %v", err)
 		}
 	}()
 
-	if err := config.Load(ctx); err != nil {
-		errCh <- err
-	}
-
 	options := append([]micro.Option{},
-		micro.Server(httpsrv.NewServer()),
-		micro.Client(httpcli.NewClient()),
+		micro.Servers(httpsrv.NewServer()),
 		micro.Context(ctx),
-		micro.Name("file-service"),
-		micro.Version("1.0"),
-		micro.Store(s3),
+		micro.Name(cfg.Server.Name),
+		micro.Version(cfg.Server.Version),
+		micro.Stores(s3Clean, s3Dirty),
 	)
 	svc := micro.NewService(options...)
 
@@ -81,12 +117,11 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 		errCh <- err
 	}
 
-	// os.Getenv("SERVER_PORT")
 	if err := svc.Init(
-		micro.Server(httpsrv.NewServer(
-			server.Name("file-service"),
-			server.Version("1.0"),
-			server.Address(":4545"),
+		micro.Servers(httpsrv.NewServer(
+			server.Name(cfg.Server.Name),
+			server.Version(cfg.Server.Version),
+			server.Address(cfg.Server.Addr),
 			server.Context(ctx),
 			server.Codec("application/json", jsoncodec.NewCodec()),
 			server.WrapHandler(promwrapper.NewHandlerWrapper(
@@ -96,7 +131,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 			)),
 			server.WrapHandler(idwrapper.NewServerHandlerWrapper()),
 		)),
-		micro.Client(httpcli.NewClient(
+		micro.Clients(httpcli.NewClient(
 			client.ContentType("application/json"),
 			client.Codec("application/json", jsoncodec.NewCodec()),
 			client.Wrap(promwrapper.NewClientWrapper(
@@ -106,7 +141,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 			)),
 			client.Wrap(idwrapper.NewClientWrapper()),
 		)),
-		micro.Store(s3),
+		micro.Stores(s3Clean, s3Dirty),
 	); err != nil {
 		errCh <- err
 	}
@@ -122,25 +157,24 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	router.Use(middleware.NewCompressMiddleware(flate.BestSpeed).Wrapper)
 
 	router.NotFoundHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		logger.Infof(ctx, "Not found, %v\n", r.URL)
+		logger.Infof(ctx, "Not found, %v/n", r.URL)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusNotFound)
 		rw.Write([]byte(fmt.Sprintf("Not found. Path: %s, Method: %s", r.RequestURI, r.Method)))
 	})
 	router.MethodNotAllowedHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		logger.Infof(ctx, "Method not allowed, %v\n", r.URL)
+		logger.Infof(ctx, "Method not allowed, %v/n", r.URL)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		rw.Write([]byte(fmt.Sprintf("Method not allowed, %s", r.Method)))
 	})
 	endpoints := pb.NewFileProcessingServiceEndpoints()
 
-	// os.Getenv("DB_URL")
-	db := <-initDB("postgres", "postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable", errCh)
+	db := <-initDB("postgres", cfg.Database.URL, errCh)
 
 	fr := repository.NewAWSFileRepository(db)
 
-	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), fr, svc.Options().Store)
+	srv := service.NewAWSProcessingService(jsoncodec.NewCodec(), fr, svc.Store("clean_region"), svc.Store("dirty_region"))
 
 	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec())
 
@@ -154,12 +188,12 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	statsOpts := append([]stats.Option{},
 		stats.WithDefaultHealth(),
 		stats.WithMetrics(),
-		stats.WithVersionDate("1.0", time.Now().String()),
+		stats.WithVersionDate(cfg.Server.Name, time.Now().String()),
 	)
 
 	healthServer := stats.NewServer(statsOpts...)
 	go func() {
-		logger.Fatal(ctx, healthServer.Serve(":9090"))
+		logger.Fatal(ctx, healthServer.Serve(cfg.Metric.Addr))
 	}()
 
 	if err := svc.Run(); err != nil {

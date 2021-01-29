@@ -26,7 +26,7 @@ func TestAWSProcessingService_SaveFile(t *testing.T) {
 	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
 	mockRepo.On("SaveFile", context.Background(), awsModel, testData).Return(nil)
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.SaveFileData(context.Background(), awsModel)
 
@@ -47,7 +47,7 @@ func TestAWSProcessingService_SaveFile_ShouldFail_NilFileIDReturnError(t *testin
 
 	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.SaveFileData(context.Background(), awsModel)
 
@@ -68,7 +68,7 @@ func TestAWSProcessingService_SaveFile_ShouldFail_CodecMarshalReturnError(t *tes
 
 	mockCodec.On("Marshal", metadata).Return(nil, fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.SaveFileData(context.Background(), awsModel)
 
@@ -93,7 +93,7 @@ func TestAWSProcessingService_SaveFile_ShouldFail_RepositorySaveFileReturnError(
 	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
 	mockRepo.On("SaveFile", context.Background(), awsModel, testData).Return(fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.SaveFileData(context.Background(), awsModel)
 
@@ -123,7 +123,7 @@ func TestAWSProcessingService_StoreFile(t *testing.T) {
 	).Return(nil)
 	mockStore.On("Exists", context.Background(), mock.Anything, mock.AnythingOfType("store.ExistsOption")).Return(nil)
 
-	awsService := service.NewAWSProcessingService(nil, nil, mockStore)
+	awsService := service.NewAWSProcessingService(nil, nil, mockStore, mockStore)
 
 	err := awsService.StoreFile(context.Background(), awsModel)
 
@@ -153,7 +153,7 @@ func TestAWSProcessingService_StoreFile_StoreWriterReturnError(t *testing.T) {
 		mock.AnythingOfType("store.WriteOption"),
 	).Return(fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(nil, nil, mockStore)
+	awsService := service.NewAWSProcessingService(nil, nil, mockStore, mockStore)
 
 	err := awsService.StoreFile(context.Background(), awsModel)
 
@@ -185,7 +185,7 @@ func TestAWSProcessingService_StoreFile_StoreExistsReturnError(t *testing.T) {
 	).Return(nil)
 	mockStore.On("Exists", context.Background(), mock.Anything, mock.AnythingOfType("store.ExistsOption")).Return(fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(nil, nil, mockStore)
+	awsService := service.NewAWSProcessingService(nil, nil, mockStore, mockStore)
 
 	err := awsService.StoreFile(context.Background(), awsModel)
 
@@ -205,7 +205,7 @@ func TestAWSProcessingService_GetFileMetadata(t *testing.T) {
 	mockRepo.On("FindFileMetadataByID", context.Background(), mock.Anything).Return(testMetadata, nil)
 	mockCodec.On("Unmarshal", []byte(testData), mock.Anything).Return(nil)
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	res, err := awsService.GetFileMetadata(context.Background(), testData)
 
@@ -221,7 +221,7 @@ func TestAWSProcessingService_GetFileMetadata_RepositoryReturnFindFileMetadataBy
 
 	mockRepo.On("FindFileMetadataByID", context.Background(), mock.Anything).Return(nil, fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(nil, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(nil, mockRepo, nil, nil)
 
 	res, err := awsService.GetFileMetadata(context.Background(), testData)
 
@@ -240,7 +240,7 @@ func TestAWSProcessingService_DownloadFile(t *testing.T) {
 	mockStore.On("Read", context.Background(), testData, &file, mock.AnythingOfType("store.ReadOption")).Return(nil)
 	mockRepo.On("FindFileNameByID", context.Background(), testData).Return(testData, nil)
 
-	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore)
+	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore, mockStore)
 
 	fileBytes, filename, err := awsService.DownloadFile(context.Background(), testData)
 
@@ -261,7 +261,7 @@ func TestAWSProcessingService_DownloadFile_StoreReadReturnError(t *testing.T) {
 	mockStore.On("Read", context.Background(), testData, &file, mock.AnythingOfType("store.ReadOption")).Return(fmt.Errorf(errMsg))
 	mockRepo.On("FindFileNameByID", context.Background(), testData).Return(testData, nil)
 
-	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore)
+	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore, mockStore)
 
 	fileBytes, filename, err := awsService.DownloadFile(context.Background(), testData)
 
@@ -282,7 +282,7 @@ func TestAWSProcessingService_DownloadFile_RepositoryFindFileNameByIDReturnError
 	mockStore.On("Read", context.Background(), testData, &file, mock.AnythingOfType("store.ReadOption")).Return(nil)
 	mockRepo.On("FindFileNameByID", context.Background(), testData).Return("", fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore)
+	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore, mockStore)
 
 	fileBytes, filename, err := awsService.DownloadFile(context.Background(), testData)
 
@@ -303,7 +303,7 @@ func TestAWSProcessingService_DownloadFile_RepositoryFindFileNameByIDReturnError
 	mockStore.On("Read", context.Background(), testData, &file, mock.AnythingOfType("store.ReadOption")).Return(fmt.Errorf(errMsg))
 	mockRepo.On("FindFileNameByID", context.Background(), testData).Return("", fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore)
+	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore, mockStore)
 
 	fileBytes, filename, err := awsService.DownloadFile(context.Background(), testData)
 
@@ -323,7 +323,7 @@ func TestAWSProcessingService_UpdateFileMetadata(t *testing.T) {
 	mockCodec.On("Marshal", testMetadata).Return([]byte(testData), nil)
 	mockRepo.On("UpdateFileMetadataByID", context.Background(), testData, testData).Return(nil)
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
 
@@ -341,7 +341,7 @@ func TestAWSProcessingService_UpdateFileMetadata_MarshalReturnError(t *testing.T
 
 	mockCodec.On("Marshal", testMetadata).Return(nil, fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
 
@@ -361,7 +361,7 @@ func TestAWSProcessingService_UpdateFileMetadata_RepositoryUpdateFileMetadataRet
 	mockCodec.On("Marshal", testMetadata).Return([]byte(testData), nil)
 	mockRepo.On("UpdateFileMetadataByID", context.Background(), testData, testData).Return(fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
 	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
 

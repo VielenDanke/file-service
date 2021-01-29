@@ -21,15 +21,17 @@ var keyRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
 type AWSProcessingService struct {
 	fileRepository repository.FileRepository
 	codec          codec.Codec
-	store          store.Store
+	cleanStore     store.Store
+	dirtyStore     store.Store
 }
 
 // NewAWSProcessingService ...
-func NewAWSProcessingService(codec codec.Codec, fileRepository repository.FileRepository, store store.Store) FileProcessingService {
+func NewAWSProcessingService(codec codec.Codec, fileRepository repository.FileRepository, cleanStore store.Store, dirtyStore store.Store) FileProcessingService {
 	return &AWSProcessingService{
 		fileRepository: fileRepository,
 		codec:          codec,
-		store:          store,
+		cleanStore:     cleanStore,
+		dirtyStore:     dirtyStore,
 	}
 }
 
@@ -39,7 +41,7 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 	fileID := uuid.New().String()
 	fileID = strings.ReplaceAll(fileID, "-", "")
 	awsFile.FileID = fileID
-	if err := aps.store.Write(
+	if err := aps.dirtyStore.Write(
 		ctx,
 		fileID,
 		awsFile.File,
@@ -48,7 +50,7 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 	); err != nil {
 		return fmt.Errorf("Error writing file to s3, %v", err)
 	}
-	if err := aps.store.Exists(ctx, fileID, s3store.ExistsBucket("micro-store-s3")); err != nil {
+	if err := aps.dirtyStore.Exists(ctx, fileID, s3store.ExistsBucket("micro-store-s3")); err != nil {
 		return fmt.Errorf("File not exists in store, %v", err)
 	}
 	return nil
@@ -98,7 +100,7 @@ func (aps *AWSProcessingService) DownloadFile(ctx context.Context, id string) ([
 	wg.Add(2)
 	go func(file *[]byte) {
 		defer wg.Done()
-		if err := aps.store.Read(ctx, id, file, s3store.ReadBucket("micro-store-s3")); err != nil {
+		if err := aps.cleanStore.Read(ctx, id, file, s3store.ReadBucket("micro-store-s3")); err != nil {
 			errCh <- fmt.Errorf("Error download file from s3, %v", err)
 		}
 	}(&file)
