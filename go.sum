@@ -333,12 +333,8 @@ github.com/unistack-org/micro-client-http/v3 v3.1.2 h1:Ipvgub65nNuX5iSb7Ehy0AZu9
 github.com/unistack-org/micro-client-http/v3 v3.1.2/go.mod h1:7tddLMx5wijKxjK3p1ikhzxKlBubBZ3vlPgPPhS0edc=
 github.com/unistack-org/micro-codec-json/v3 v3.1.1 h1:1iILAzvT7XP7Dxae9yfZJwId0nVA9GZc3Ez+n2iF3tc=
 github.com/unistack-org/micro-codec-json/v3 v3.1.1/go.mod h1:pElZKyezgNLfVIvQK/rLsVpnsojRZA01OB/L+13l0aw=
-github.com/unistack-org/micro-config-file/v3 v3.1.2 h1:Nxqy/O5s288P+FlmeJAM/3bYzMvHD9RwWF/2gVyy1Fk=
-github.com/unistack-org/micro-config-file/v3 v3.1.2/go.mod h1:U3R0B0mZgqelZF7iQ5N+afk3yIlE5sV+wU1SFl0RPLY=
 github.com/unistack-org/micro-server-http/v3 v3.1.1 h1:sth/o5flT2HBWaWTV295uYu2i0YigSlYK23IXMsRxaw=
 github.com/unistack-org/micro-server-http/v3 v3.1.1/go.mod h1:j5qfSIVO1VCFXu+Ck48zBy9Jfo3L/7rqiBSoR1z4ljU=
-github.com/unistack-org/micro-store-s3/v3 v3.1.8 h1:WEuZVRAQGqbms413pQ+GgqiYVZAM0GeglHBAl/pZOng=
-github.com/unistack-org/micro-store-s3/v3 v3.1.8/go.mod h1:N/MRMcrm22vHC/7sTfkcZXbeONNRdfGA8WhKbPMgoiw=
 github.com/unistack-org/micro-store-s3/v3 v3.1.9 h1:ZS1tmZJdDTcTEHH9YjX8EObIKehoneS73aSDR4iGPQ0=
 github.com/unistack-org/micro-store-s3/v3 v3.1.9/go.mod h1:N/MRMcrm22vHC/7sTfkcZXbeONNRdfGA8WhKbPMgoiw=
 github.com/unistack-org/micro/v3 v3.1.1/go.mod h1:0DgOy4OdJxQCDER8YSKitZugd2+1bddrRSNfeooTHDc=

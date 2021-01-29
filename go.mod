@@ -13,7 +13,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/unistack-org/micro-client-http/v3 v3.1.2
 	github.com/unistack-org/micro-codec-json/v3 v3.1.1
-	github.com/unistack-org/micro-config-file/v3 v3.1.2
 	github.com/unistack-org/micro-server-http/v3 v3.1.1
 	github.com/unistack-org/micro-store-s3/v3 v3.1.9
 	github.com/unistack-org/micro/v3 v3.1.8

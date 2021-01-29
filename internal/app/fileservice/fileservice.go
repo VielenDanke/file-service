@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	httpcli "github.com/unistack-org/micro-client-http/v3"
 	jsoncodec "github.com/unistack-org/micro-codec-json/v3"
-	fileconfig "github.com/unistack-org/micro-config-file/v3"
 	httpsrv "github.com/unistack-org/micro-server-http/v3"
 	s3store "github.com/unistack-org/micro-store-s3/v3"
 	"github.com/unistack-org/micro/v3"
 	"github.com/unistack-org/micro/v3/client"
-	"github.com/unistack-org/micro/v3/config"
 	"github.com/unistack-org/micro/v3/logger"
 	"github.com/unistack-org/micro/v3/server"
 	"github.com/vielendanke/file-service/configs"
@@ -40,7 +39,6 @@ func initDB(name, url string, errCh chan<- error) <-chan *sqlx.DB {
 
 // StartFileService ...
 func StartFileService(ctx context.Context, errCh chan<- error) {
-	cfg := configs.NewConfig("file-service", "1.0")
 	s3 := s3store.NewStore(
 		s3store.AccessKey("Q3AM3UQ867SPQQA43P2F"),
 		s3store.SecretKey("zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"),
@@ -59,19 +57,6 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 		}
 	}()
 
-	if err := config.Load(ctx,
-		config.NewConfig(
-			config.Struct(cfg),
-		),
-		config.NewConfig(
-			config.AllowFail(true),
-			config.Struct(cfg),
-			config.Codec(jsoncodec.NewCodec()),
-			fileconfig.Path("configs/local.json"),
-		),
-	); err != nil {
-		errCh <- err
-	}
 	options := append([]micro.Option{},
 		micro.Server(httpsrv.NewServer()),
 		micro.Client(httpcli.NewClient()),
@@ -89,7 +74,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 		micro.Server(httpsrv.NewServer(
 			server.Name("file-service"),
 			server.Version("1.0"),
-			server.Address(":4545"),
+			server.Address(os.Getenv("SERVER_PORT")),
 			server.Context(ctx),
 			server.Codec("application/json", jsoncodec.NewCodec()),
 		)),
@@ -121,7 +106,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	})
 	endpoints := pb.NewFileProcessingServiceEndpoints()
 
-	db := <-initDB("postgres", "postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable", errCh)
+	db := <-initDB("postgres", os.Getenv("DB_URL"), errCh)
 
 	fr := repository.NewAWSFileRepository(db)
 

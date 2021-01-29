@@ -23,3 +23,11 @@ test:
 .PHONY: docker
 docker:
 	docker build . -t file-service:latest
+
+.PHONY: migrate_up
+migrate_up:
+	migrate -database postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable -path migrations up
+
+.PHONY: migrate_down
+migrate_down:
+	migrate -database postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable -path migrations down
