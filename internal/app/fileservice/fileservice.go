@@ -1,21 +1,27 @@
 package fileservice
 
 import (
+	"compress/flate"
 	"context"
 	"fmt"
 	"net/http"
-	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	httpcli "github.com/unistack-org/micro-client-http/v3"
 	jsoncodec "github.com/unistack-org/micro-codec-json/v3"
+	promwrapper "github.com/unistack-org/micro-metrics-prometheus/v3"
 	httpsrv "github.com/unistack-org/micro-server-http/v3"
 	s3store "github.com/unistack-org/micro-store-s3/v3"
+	idwrapper "github.com/unistack-org/micro-wrapper-requestid/v3"
 	"github.com/unistack-org/micro/v3"
 	"github.com/unistack-org/micro/v3/client"
+	"github.com/unistack-org/micro/v3/config"
 	"github.com/unistack-org/micro/v3/logger"
 	"github.com/unistack-org/micro/v3/server"
+	"github.com/vielendanke/commons/http/middleware"
+	"github.com/vielendanke/commons/stats"
 	"github.com/vielendanke/file-service/configs"
 	"github.com/vielendanke/file-service/internal/app/fileservice/handlers"
 	"github.com/vielendanke/file-service/internal/app/fileservice/middlewares"
@@ -57,6 +63,10 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 		}
 	}()
 
+	if err := config.Load(ctx); err != nil {
+		errCh <- err
+	}
+
 	options := append([]micro.Option{},
 		micro.Server(httpsrv.NewServer()),
 		micro.Client(httpcli.NewClient()),
@@ -70,17 +80,31 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	if err := svc.Init(); err != nil {
 		errCh <- err
 	}
+
+	// os.Getenv("SERVER_PORT")
 	if err := svc.Init(
 		micro.Server(httpsrv.NewServer(
 			server.Name("file-service"),
 			server.Version("1.0"),
-			server.Address(os.Getenv("SERVER_PORT")),
+			server.Address(":4545"),
 			server.Context(ctx),
 			server.Codec("application/json", jsoncodec.NewCodec()),
+			server.WrapHandler(promwrapper.NewHandlerWrapper(
+				promwrapper.ServiceName(svc.Server().Options().Name),
+				promwrapper.ServiceVersion(svc.Server().Options().Version),
+				promwrapper.ServiceID(svc.Server().Options().Id),
+			)),
+			server.WrapHandler(idwrapper.NewServerHandlerWrapper()),
 		)),
 		micro.Client(httpcli.NewClient(
 			client.ContentType("application/json"),
 			client.Codec("application/json", jsoncodec.NewCodec()),
+			client.Wrap(promwrapper.NewClientWrapper(
+				promwrapper.ServiceName(svc.Server().Options().Name),
+				promwrapper.ServiceVersion(svc.Server().Options().Version),
+				promwrapper.ServiceID(svc.Server().Options().Id),
+			)),
+			client.Wrap(idwrapper.NewClientWrapper()),
 		)),
 		micro.Store(s3),
 	); err != nil {
@@ -91,6 +115,11 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	ctm := middlewares.NewContentTypeMiddleware("application/json")
 
 	router.Use(ctm.ContentTypeMiddleware)
+	router.Use(middleware.HttpMetricsWrapper)
+	router.Use(middleware.NewRequestIDMiddleware().Wrapper)
+	router.Use(middleware.NewLoggerMiddleware().Wrapper)
+	router.Use(middleware.NewNocacheMiddleware().Wrapper)
+	router.Use(middleware.NewCompressMiddleware(flate.BestSpeed).Wrapper)
 
 	router.NotFoundHandler = http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		logger.Infof(ctx, "Not found, %v\n", r.URL)
@@ -106,7 +135,8 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	})
 	endpoints := pb.NewFileProcessingServiceEndpoints()
 
-	db := <-initDB("postgres", os.Getenv("DB_URL"), errCh)
+	// os.Getenv("DB_URL")
+	db := <-initDB("postgres", "postgres://user:userpassword@localhost:5432/file_service_db?sslmode=disable", errCh)
 
 	fr := repository.NewAWSFileRepository(db)
 
@@ -120,6 +150,18 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	if err := svc.Server().Handle(svc.Server().NewHandler(router)); err != nil {
 		errCh <- err
 	}
+
+	statsOpts := append([]stats.Option{},
+		stats.WithDefaultHealth(),
+		stats.WithMetrics(),
+		stats.WithVersionDate("1.0", time.Now().String()),
+	)
+
+	healthServer := stats.NewServer(statsOpts...)
+	go func() {
+		logger.Fatal(ctx, healthServer.Serve(":9090"))
+	}()
+
 	if err := svc.Run(); err != nil {
 		errCh <- err
 	}

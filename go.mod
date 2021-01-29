@@ -2,20 +2,26 @@ module github.com/vielendanke/file-service
 
 go 1.15
 
+replace github.com/vielendanke/commons => ../commons
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/golang/protobuf v1.4.3
-	github.com/google/uuid v1.1.5
-	github.com/gorilla/mux v1.7.3
+	github.com/google/uuid v1.2.0
+	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.1.0
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/lib/pq v1.9.0
 	github.com/stretchr/testify v1.7.0
 	github.com/unistack-org/micro-client-http/v3 v3.1.2
 	github.com/unistack-org/micro-codec-json/v3 v3.1.1
+	github.com/unistack-org/micro-config-consul/v3 v3.1.2
+	github.com/unistack-org/micro-metrics-prometheus/v3 v3.1.1
 	github.com/unistack-org/micro-server-http/v3 v3.1.1
 	github.com/unistack-org/micro-store-s3/v3 v3.1.9
+	github.com/unistack-org/micro-wrapper-requestid/v3 v3.1.3
 	github.com/unistack-org/micro/v3 v3.1.8
+	github.com/vielendanke/commons v0.0.0-00010101000000-000000000000
 	google.golang.org/genproto v0.0.0-20210106152847-07624b53cd92
 	google.golang.org/protobuf v1.25.0
 )
