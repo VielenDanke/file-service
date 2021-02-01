@@ -68,13 +68,13 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 	}
 
 	s3Dirty := s3store.NewStore(
-		store.Name("dirty_region"),
+		store.Name(cfg.Amazon.DirtyRegion.Name),
 		s3store.AccessKey(cfg.Amazon.DirtyRegion.AccessKey),
 		s3store.SecretKey(cfg.Amazon.DirtyRegion.SecretKey),
 		s3store.Endpoint(cfg.Amazon.DirtyRegion.Endpoint),
 	)
 	s3Clean := s3store.NewStore(
-		store.Name("clean_region"),
+		store.Name(cfg.Amazon.CleanRegion.Name),
 		s3store.AccessKey(cfg.Amazon.CleanRegion.AccessKey),
 		s3store.SecretKey(cfg.Amazon.CleanRegion.SecretKey),
 		s3store.Endpoint(cfg.Amazon.CleanRegion.Endpoint),

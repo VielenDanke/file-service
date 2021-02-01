@@ -42,6 +42,7 @@ type AmazonConfig struct {
 }
 
 type AmazonConnectConfig struct {
+	Name      string `json:"name"`
 	Region    string `json:"region"`
 	AccessKey string `json:"access_key"`
 	SecretKey string `json:"secret_key"`

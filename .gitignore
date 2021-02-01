@@ -4,6 +4,8 @@
 *.so
 *.dylib
 
+assets
+
 *.test
 
 *.out
