@@ -38,19 +38,16 @@ func NewAWSProcessingService(codec codec.Codec, fileRepository repository.FileRe
 // StoreFile ...
 func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
-	fileID := uuid.New().String()
-	fileID = strings.ReplaceAll(fileID, "-", "")
-	awsFile.FileID = fileID
 	if err := aps.dirtyStore.Write(
 		ctx,
-		fileID,
+		awsFile.FileID,
 		awsFile.File,
 		s3store.WriteBucket("micro-store-s3"),
 		s3store.ContentType("application/octet-stream"),
 	); err != nil {
 		return fmt.Errorf("Error writing file to s3, %v", err)
 	}
-	if err := aps.dirtyStore.Exists(ctx, fileID, s3store.ExistsBucket("micro-store-s3")); err != nil {
+	if err := aps.dirtyStore.Exists(ctx, awsFile.FileID, s3store.ExistsBucket("micro-store-s3")); err != nil {
 		return fmt.Errorf("File not exists in store, %v", err)
 	}
 	return nil
@@ -59,7 +56,15 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 // SaveFileData ...
 func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
+	if err := aps.fileRepository.CheckIfExists(
+		ctx, f.GetMetadata()["class"].(string), f.GetMetadata()["type"].(string), f.GetMetadata()["number"].(string),
+	); err != nil {
+		return err
+	}
 	PrepareMetadata(awsFile.Metadata, []string{"type", "class", "number"})
+	fileID := uuid.New().String()
+	fileID = strings.ReplaceAll(fileID, "-", "")
+	awsFile.FileID = fileID
 	jsonMetadata, err := aps.codec.Marshal(awsFile.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("Error while marshalling metadata, %v", err)

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -18,6 +19,15 @@ func NewAWSFileRepository(db *sqlx.DB) FileRepository {
 	return &AWSFileRepository{
 		db: db,
 	}
+}
+
+// CheckIfExists ...
+func (afr *AWSFileRepository) CheckIfExists(ctx context.Context, fields ...string) error {
+	rows := afr.db.QueryRowContext(ctx, "SELECT ID FROM FILES WHERE DOC_CLASS=$1 AND DOC_TYPE=$2 AND DOC_NUM=$3", fields[0], fields[1], fields[2])
+	if rows.Scan() == sql.ErrNoRows {
+		return nil
+	}
+	return fmt.Errorf("File alredy exists in the system, to update - use update enpdoint")
 }
 
 // SaveFile ...

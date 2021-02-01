@@ -59,14 +59,14 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 		DocNum:   properties["number"].(string),
 		Metadata: properties,
 	}
-	if err := fh.service.StoreFile(r.Context(), awsFile); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fh.codec.Write(w, nil, fmt.Sprintf("Error storing file to s3, %v", err))
-		return
-	}
 	if saveErr := fh.service.SaveFileData(r.Context(), awsFile); saveErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fh.codec.Write(w, nil, fmt.Sprintf("Error saving file metadata to DB, %v", saveErr))
+		return
+	}
+	if err := fh.service.StoreFile(r.Context(), awsFile); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fh.codec.Write(w, nil, fmt.Sprintf("Error storing file to s3, %v", err))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)

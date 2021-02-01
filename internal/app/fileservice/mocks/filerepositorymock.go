@@ -14,6 +14,27 @@ type FileRepository struct {
 	mock.Mock
 }
 
+// CheckIfExists provides a mock function with given fields: ctx, fields
+func (_m *FileRepository) CheckIfExists(ctx context.Context, fields ...string) error {
+	_va := make([]interface{}, len(fields))
+	for _i := range fields {
+		_va[_i] = fields[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, ...string) error); ok {
+		r0 = rf(ctx, fields...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // FindFileMetadataByID provides a mock function with given fields: ctx, id
 func (_m *FileRepository) FindFileMetadataByID(ctx context.Context, id string) (map[string]string, error) {
 	ret := _m.Called(ctx, id)
