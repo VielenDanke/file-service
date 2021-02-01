@@ -12,5 +12,6 @@ type FileRepository interface {
 	FindFileMetadataByID(ctx context.Context, id string) (map[string]string, error)
 	FindFileNameByID(ctx context.Context, id string) (string, error)
 	UpdateFileMetadataByID(ctx context.Context, metadata, id string) error
-	CheckIfExists(ctx context.Context, fields ...string) error
+	CheckIfExists(ctx context.Context, f model.FileModel) error
+	DeleteByID(ctx context.Context, id string) error
 }

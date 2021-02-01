@@ -23,6 +23,7 @@ func TestAWSProcessingService_SaveFile(t *testing.T) {
 		Metadata: metadata,
 	}
 
+	mockRepo.On("CheckIfExists", mock.Anything, awsModel).Return(nil)
 	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
 	mockRepo.On("SaveFile", context.Background(), awsModel, testData).Return(nil)
 

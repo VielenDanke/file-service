@@ -13,4 +13,5 @@ type FileProcessingService interface {
 	GetFileMetadata(ctx context.Context, id string) (map[string]interface{}, error)
 	DownloadFile(ctx context.Context, id string) ([]byte, string, error)
 	UpdateFileMetadata(ctx context.Context, metadata map[string]interface{}, id string) error
+	DeleteMetadataByID(ctx context.Context, id string) error
 }

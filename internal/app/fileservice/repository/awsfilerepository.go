@@ -21,9 +21,35 @@ func NewAWSFileRepository(db *sqlx.DB) FileRepository {
 	}
 }
 
+// DeleteByID ...
+func (afr *AWSFileRepository) DeleteByID(ctx context.Context, id string) error {
+	tx := afr.db.MustBegin()
+	res, err := tx.ExecContext(ctx, "DELETE FROM FILES WHERE ID=$1", id)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("Error during delete the file metadata, %v", err)
+	}
+	num, rowsErr := res.RowsAffected()
+	if rowsErr != nil {
+		tx.Rollback()
+		return fmt.Errorf("Error during count rows affected, %v", err)
+	}
+	if num == 0 {
+		return fmt.Errorf("Error, affected rows is 0")
+	}
+	return nil
+}
+
 // CheckIfExists ...
-func (afr *AWSFileRepository) CheckIfExists(ctx context.Context, fields ...string) error {
-	rows := afr.db.QueryRowContext(ctx, "SELECT ID FROM FILES WHERE DOC_CLASS=$1 AND DOC_TYPE=$2 AND DOC_NUM=$3", fields[0], fields[1], fields[2])
+func (afr *AWSFileRepository) CheckIfExists(ctx context.Context, f model.FileModel) error {
+	awsModel := f.(*model.AWSModel)
+	rows := afr.db.QueryRowContext(
+		ctx,
+		"SELECT ID FROM FILES WHERE DOC_CLASS=$1 AND DOC_TYPE=$2 AND DOC_NUM=$3",
+		awsModel.GetDocClass(),
+		awsModel.GetDocType(),
+		awsModel.GetDocNum(),
+	)
 	if rows.Scan() == sql.ErrNoRows {
 		return nil
 	}

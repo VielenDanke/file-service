@@ -35,6 +35,11 @@ func NewAWSProcessingService(codec codec.Codec, fileRepository repository.FileRe
 	}
 }
 
+// DeleteMetadataByID ...
+func (aps *AWSProcessingService) DeleteMetadataByID(ctx context.Context, id string) error {
+	return aps.fileRepository.DeleteByID(ctx, id)
+}
+
 // StoreFile ...
 func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
@@ -56,9 +61,7 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 // SaveFileData ...
 func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
-	if err := aps.fileRepository.CheckIfExists(
-		ctx, f.GetMetadata()["class"].(string), f.GetMetadata()["type"].(string), f.GetMetadata()["number"].(string),
-	); err != nil {
+	if err := aps.fileRepository.CheckIfExists(ctx, awsFile); err != nil {
 		return err
 	}
 	PrepareMetadata(awsFile.Metadata, []string{"type", "class", "number"})

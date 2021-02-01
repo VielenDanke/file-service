@@ -65,6 +65,11 @@ func (fh *FileServiceHandler) FileProcessing(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if err := fh.service.StoreFile(r.Context(), awsFile); err != nil {
+		if deleteErr := fh.service.DeleteMetadataByID(r.Context(), awsFile.GetFileID()); deleteErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fh.codec.Write(w, nil, fmt.Sprintf("Error storing file %v and delete metadata %v", err, deleteErr))
+			return
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		fh.codec.Write(w, nil, fmt.Sprintf("Error storing file to s3, %v", err))
 		return

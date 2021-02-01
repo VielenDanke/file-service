@@ -14,20 +14,27 @@ type FileRepository struct {
 	mock.Mock
 }
 
-// CheckIfExists provides a mock function with given fields: ctx, fields
-func (_m *FileRepository) CheckIfExists(ctx context.Context, fields ...string) error {
-	_va := make([]interface{}, len(fields))
-	for _i := range fields {
-		_va[_i] = fields[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
+// CheckIfExists provides a mock function with given fields: ctx, f
+func (_m *FileRepository) CheckIfExists(ctx context.Context, f model.FileModel) error {
+	ret := _m.Called(ctx, f)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, ...string) error); ok {
-		r0 = rf(ctx, fields...)
+	if rf, ok := ret.Get(0).(func(context.Context, model.FileModel) error); ok {
+		r0 = rf(ctx, f)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteByID provides a mock function with given fields: ctx, id
+func (_m *FileRepository) DeleteByID(ctx context.Context, id string) error {
+	ret := _m.Called(ctx, id)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, id)
 	} else {
 		r0 = ret.Error(0)
 	}
