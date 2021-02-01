@@ -21,8 +21,8 @@ func NewAWSFileRepository(db *sqlx.DB) FileRepository {
 	}
 }
 
-// DeleteByID ...
-func (afr *AWSFileRepository) DeleteByID(ctx context.Context, id string) error {
+// DeleteMetadataByID ...
+func (afr *AWSFileRepository) DeleteMetadataByID(ctx context.Context, id string) error {
 	tx := afr.db.MustBegin()
 	res, err := tx.ExecContext(ctx, "DELETE FROM FILES WHERE ID=$1", id)
 	if err != nil {
@@ -56,8 +56,8 @@ func (afr *AWSFileRepository) CheckIfExists(ctx context.Context, f model.FileMod
 	return fmt.Errorf("File alredy exists in the system, to update - use update enpdoint")
 }
 
-// SaveFile ...
-func (afr *AWSFileRepository) SaveFile(ctx context.Context, f model.FileModel, metadata string) error {
+// SaveFileMetadata ...
+func (afr *AWSFileRepository) SaveFileMetadata(ctx context.Context, f model.FileModel, metadata string) error {
 	awsFile := f.(*model.AWSModel)
 	tx := afr.db.MustBegin()
 	res, err := tx.ExecContext(ctx, "INSERT INTO FILES(ID, FILE_NAME, DOC_CLASS, DOC_TYPE, DOC_NUM, METADATA) VALUES($1, $2, $3, $4, $5, $6)",

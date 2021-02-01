@@ -120,7 +120,45 @@ func TestFileServiceHandler_FileProcessing_FileServiceStoreFileReturnError(t *te
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
+	mockService.On("SaveFileData", mock.Anything, mock.Anything).Return(nil)
 	mockService.On("StoreFile", mock.Anything, mock.Anything).Return(fmt.Errorf(errMsg))
+	mockService.On("DeleteMetadataByID", mock.Anything, mock.AnythingOfType("string")).Return(nil)
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Result().StatusCode)
+	assert.Equal(t, "application/json", rec.Header()["Content-Type"][0])
+	mockService.AssertExpectations(t)
+}
+
+func TestFileServiceHandler_FileProcessing_FileServiceStoreFileAndDeleteMetadataByIDReturnError(t *testing.T) {
+	mockService := new(mocks.FileProcessingService)
+	errMsg := "error message"
+	jsonBody := make(map[string]interface{})
+	jsonBody["class"] = "class"
+	jsonBody["type"] = "type"
+	jsonBody["number"] = "number"
+	jsonBody["iin"] = "iin"
+
+	writer, body, err := prepareMultipartRequest(jsonBody)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	router, routerErr := prepareRouter(mockService, jsoncodec.NewCodec())
+	if routerErr != nil {
+		t.Fatal(routerErr.Error())
+	}
+	rec := httptest.NewRecorder()
+
+	req, reqErr := http.NewRequest(http.MethodPost, "/files", body)
+	if reqErr != nil {
+		t.Fatalf("Error creating http request, %v", reqErr)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	mockService.On("SaveFileData", mock.Anything, mock.Anything).Return(nil)
+	mockService.On("StoreFile", mock.Anything, mock.Anything).Return(fmt.Errorf(errMsg))
+	mockService.On("DeleteMetadataByID", mock.Anything, mock.AnythingOfType("string")).Return(fmt.Errorf(errMsg))
 
 	router.ServeHTTP(rec, req)
 
@@ -154,7 +192,6 @@ func TestFileServiceHandler_FileProcessing_FileServiceSaveFileDataReturnError(t 
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	mockService.On("StoreFile", mock.Anything, mock.Anything).Return(nil)
 	mockService.On("SaveFileData", mock.Anything, mock.Anything).Return(fmt.Errorf(errMsg))
 
 	router.ServeHTTP(rec, req)

@@ -37,12 +37,15 @@ func NewAWSProcessingService(codec codec.Codec, fileRepository repository.FileRe
 
 // DeleteMetadataByID ...
 func (aps *AWSProcessingService) DeleteMetadataByID(ctx context.Context, id string) error {
-	return aps.fileRepository.DeleteByID(ctx, id)
+	return aps.fileRepository.DeleteMetadataByID(ctx, id)
 }
 
 // StoreFile ...
 func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileModel) error {
 	awsFile := f.(*model.AWSModel)
+	if awsFile.GetFileID() == "" {
+		return fmt.Errorf("ID of file not found")
+	}
 	if err := aps.dirtyStore.Write(
 		ctx,
 		awsFile.FileID,
@@ -51,9 +54,6 @@ func (aps *AWSProcessingService) StoreFile(ctx context.Context, f model.FileMode
 		s3store.ContentType("application/octet-stream"),
 	); err != nil {
 		return fmt.Errorf("Error writing file to s3, %v", err)
-	}
-	if err := aps.dirtyStore.Exists(ctx, awsFile.FileID, s3store.ExistsBucket("micro-store-s3")); err != nil {
-		return fmt.Errorf("File not exists in store, %v", err)
 	}
 	return nil
 }
@@ -72,10 +72,7 @@ func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileM
 	if err != nil {
 		return fmt.Errorf("Error while marshalling metadata, %v", err)
 	}
-	if len(awsFile.GetFileID()) == 0 {
-		return fmt.Errorf("ID is not present")
-	}
-	if err := aps.fileRepository.SaveFile(ctx, awsFile, string(jsonMetadata)); err != nil {
+	if err := aps.fileRepository.SaveFileMetadata(ctx, awsFile, string(jsonMetadata)); err != nil {
 		return err
 	}
 	return nil
@@ -83,6 +80,9 @@ func (aps *AWSProcessingService) SaveFileData(ctx context.Context, f model.FileM
 
 // GetFileMetadata ...
 func (aps *AWSProcessingService) GetFileMetadata(ctx context.Context, id string) (map[string]interface{}, error) {
+	if err := aps.cleanStore.Exists(ctx, id, s3store.ExistsBucket("micro-store-s3")); err != nil {
+		return nil, fmt.Errorf("File not present in clean store, %v", err)
+	}
 	properties, err := aps.fileRepository.FindFileMetadataByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -131,6 +131,9 @@ func (aps *AWSProcessingService) DownloadFile(ctx context.Context, id string) ([
 
 // UpdateFileMetadata ...
 func (aps *AWSProcessingService) UpdateFileMetadata(ctx context.Context, metadata map[string]interface{}, id string) error {
+	if err := aps.cleanStore.Exists(ctx, id, s3store.ExistsBucket("micro-store-s3")); err != nil {
+		return fmt.Errorf("File not present in clean store, %v", err)
+	}
 	jsonMetadata, err := aps.codec.Marshal(metadata)
 	if err != nil {
 		return fmt.Errorf("Error marshalling metadata: %v", err)

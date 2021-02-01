@@ -28,8 +28,8 @@ func (_m *FileRepository) CheckIfExists(ctx context.Context, f model.FileModel) 
 	return r0
 }
 
-// DeleteByID provides a mock function with given fields: ctx, id
-func (_m *FileRepository) DeleteByID(ctx context.Context, id string) error {
+// DeleteMetadataByID provides a mock function with given fields: ctx, id
+func (_m *FileRepository) DeleteMetadataByID(ctx context.Context, id string) error {
 	ret := _m.Called(ctx, id)
 
 	var r0 error
@@ -86,8 +86,8 @@ func (_m *FileRepository) FindFileNameByID(ctx context.Context, id string) (stri
 	return r0, r1
 }
 
-// SaveFile provides a mock function with given fields: ctx, f, metadata
-func (_m *FileRepository) SaveFile(ctx context.Context, f model.FileModel, metadata string) error {
+// SaveFileMetadata provides a mock function with given fields: ctx, f, metadata
+func (_m *FileRepository) SaveFileMetadata(ctx context.Context, f model.FileModel, metadata string) error {
 	ret := _m.Called(ctx, f, metadata)
 
 	var r0 error

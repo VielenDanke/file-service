@@ -28,7 +28,7 @@ func init() {
 	awsRepo = repository.NewAWSFileRepository(mockDB)
 }
 
-func TestSaveFile(t *testing.T) {
+func TestSaveFileMetadata(t *testing.T) {
 	testData := "testData"
 	fModel := &model.AWSModel{
 		FileID:   testData,
@@ -44,7 +44,7 @@ func TestSaveFile(t *testing.T) {
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
-	if err := awsRepo.SaveFile(context.Background(), fModel, testData); err != nil {
+	if err := awsRepo.SaveFileMetadata(context.Background(), fModel, testData); err != nil {
 		t.Fatalf("Error was not expected while saving file: %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -52,7 +52,7 @@ func TestSaveFile(t *testing.T) {
 	}
 }
 
-func TestSaveFile_InsertNotHappened(t *testing.T) {
+func TestSaveFileMetadata_InsertNotHappened(t *testing.T) {
 	testData := "testData"
 	fModel := &model.AWSModel{
 		FileID:   testData,
@@ -68,7 +68,7 @@ func TestSaveFile_InsertNotHappened(t *testing.T) {
 	).WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectRollback()
 
-	err := awsRepo.SaveFile(context.Background(), fModel, testData)
+	err := awsRepo.SaveFileMetadata(context.Background(), fModel, testData)
 
 	assert.NotNil(t, err)
 
@@ -77,7 +77,7 @@ func TestSaveFile_InsertNotHappened(t *testing.T) {
 	}
 }
 
-func TestSaveFile_ReturnError(t *testing.T) {
+func TestSaveFileMetadata_ReturnError(t *testing.T) {
 	testData := "testData"
 	errMessage := "My custom error message"
 	fModel := &model.AWSModel{
@@ -94,7 +94,7 @@ func TestSaveFile_ReturnError(t *testing.T) {
 	).WillReturnError(fmt.Errorf(errMessage))
 	mock.ExpectRollback()
 
-	err := awsRepo.SaveFile(context.Background(), fModel, testData)
+	err := awsRepo.SaveFileMetadata(context.Background(), fModel, testData)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), errMessage)

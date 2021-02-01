@@ -13,7 +13,7 @@ import (
 	"github.com/vielendanke/file-service/internal/app/fileservice/service"
 )
 
-func TestAWSProcessingService_SaveFile(t *testing.T) {
+func TestAWSProcessingService_SaveFileMetadata(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
 	testData := "metadata"
@@ -25,7 +25,7 @@ func TestAWSProcessingService_SaveFile(t *testing.T) {
 
 	mockRepo.On("CheckIfExists", mock.Anything, awsModel).Return(nil)
 	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
-	mockRepo.On("SaveFile", context.Background(), awsModel, testData).Return(nil)
+	mockRepo.On("SaveFileMetadata", context.Background(), awsModel, testData).Return(nil)
 
 	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
@@ -37,16 +37,18 @@ func TestAWSProcessingService_SaveFile(t *testing.T) {
 	mockCodec.AssertExpectations(t)
 }
 
-func TestAWSProcessingService_SaveFile_ShouldFail_NilFileIDReturnError(t *testing.T) {
+func TestAWSProcessingService_SaveFileMetadata_FileMetadataAlreadyExists(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
 	testData := "metadata"
+	errMsg := "Error"
 	metadata := make(map[string]interface{})
 	awsModel := &model.AWSModel{
+		FileID:   testData,
 		Metadata: metadata,
 	}
 
-	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
+	mockRepo.On("CheckIfExists", mock.Anything, awsModel).Return(fmt.Errorf(errMsg))
 
 	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
@@ -58,7 +60,7 @@ func TestAWSProcessingService_SaveFile_ShouldFail_NilFileIDReturnError(t *testin
 	mockCodec.AssertExpectations(t)
 }
 
-func TestAWSProcessingService_SaveFile_ShouldFail_CodecMarshalReturnError(t *testing.T) {
+func TestAWSProcessingService_SaveFileMetadata_CodecMarshalReturnError(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
 	metadata := make(map[string]interface{})
@@ -67,6 +69,7 @@ func TestAWSProcessingService_SaveFile_ShouldFail_CodecMarshalReturnError(t *tes
 		Metadata: metadata,
 	}
 
+	mockRepo.On("CheckIfExists", mock.Anything, awsModel).Return(nil)
 	mockCodec.On("Marshal", metadata).Return(nil, fmt.Errorf(errMsg))
 
 	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
@@ -80,7 +83,7 @@ func TestAWSProcessingService_SaveFile_ShouldFail_CodecMarshalReturnError(t *tes
 	mockCodec.AssertExpectations(t)
 }
 
-func TestAWSProcessingService_SaveFile_ShouldFail_RepositorySaveFileReturnError(t *testing.T) {
+func TestAWSProcessingService_SaveFileMetadata_RepositorySaveFileReturnError(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
 	testData := "metadata"
@@ -91,8 +94,9 @@ func TestAWSProcessingService_SaveFile_ShouldFail_RepositorySaveFileReturnError(
 		Metadata: metadata,
 	}
 
+	mockRepo.On("CheckIfExists", mock.Anything, awsModel).Return(nil)
 	mockCodec.On("Marshal", metadata).Return([]byte(testData), nil)
-	mockRepo.On("SaveFile", context.Background(), awsModel, testData).Return(fmt.Errorf(errMsg))
+	mockRepo.On("SaveFileMetadata", context.Background(), awsModel, testData).Return(fmt.Errorf(errMsg))
 
 	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
 
@@ -112,6 +116,7 @@ func TestAWSProcessingService_StoreFile(t *testing.T) {
 	awsModel := &model.AWSModel{
 		Metadata: metadata,
 		File:     bytes.NewBuffer([]byte(testData)),
+		FileID:   testData,
 	}
 
 	mockStore.On(
@@ -122,15 +127,30 @@ func TestAWSProcessingService_StoreFile(t *testing.T) {
 		mock.AnythingOfType("store.WriteOption"),
 		mock.AnythingOfType("store.WriteOption"),
 	).Return(nil)
-	mockStore.On("Exists", context.Background(), mock.Anything, mock.AnythingOfType("store.ExistsOption")).Return(nil)
 
 	awsService := service.NewAWSProcessingService(nil, nil, mockStore, mockStore)
 
 	err := awsService.StoreFile(context.Background(), awsModel)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, awsModel.FileID)
-	assert.NotContains(t, awsModel.FileID, "-")
+
+	mockStore.AssertExpectations(t)
+}
+
+func TestAWSProcessingService_StoreFile_EmptyFileID(t *testing.T) {
+	mockStore := new(mocks.MockStore)
+	testData := "metadata"
+	metadata := make(map[string]interface{})
+	awsModel := &model.AWSModel{
+		Metadata: metadata,
+		File:     bytes.NewBuffer([]byte(testData)),
+	}
+
+	awsService := service.NewAWSProcessingService(nil, nil, mockStore, mockStore)
+
+	err := awsService.StoreFile(context.Background(), awsModel)
+
+	assert.NotNil(t, err)
 
 	mockStore.AssertExpectations(t)
 }
@@ -143,6 +163,7 @@ func TestAWSProcessingService_StoreFile_StoreWriterReturnError(t *testing.T) {
 	awsModel := &model.AWSModel{
 		Metadata: metadata,
 		File:     bytes.NewBuffer([]byte(testData)),
+		FileID:   testData,
 	}
 
 	mockStore.On(
@@ -160,69 +181,65 @@ func TestAWSProcessingService_StoreFile_StoreWriterReturnError(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), errMsg)
-	assert.NotNil(t, awsModel.FileID)
-	assert.NotContains(t, awsModel.FileID, "-")
 
 	mockStore.AssertExpectations(t)
-}
-
-func TestAWSProcessingService_StoreFile_StoreExistsReturnError(t *testing.T) {
-	mockStore := new(mocks.MockStore)
-	testData := "metadata"
-	metadata := make(map[string]interface{})
-	errMsg := "my custom error message"
-	awsModel := &model.AWSModel{
-		Metadata: metadata,
-		File:     bytes.NewBuffer([]byte(testData)),
-	}
-
-	mockStore.On(
-		"Write",
-		context.Background(),
-		mock.Anything,
-		awsModel.File,
-		mock.AnythingOfType("store.WriteOption"),
-		mock.AnythingOfType("store.WriteOption"),
-	).Return(nil)
-	mockStore.On("Exists", context.Background(), mock.Anything, mock.AnythingOfType("store.ExistsOption")).Return(fmt.Errorf(errMsg))
-
-	awsService := service.NewAWSProcessingService(nil, nil, mockStore, mockStore)
-
-	err := awsService.StoreFile(context.Background(), awsModel)
-
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), errMsg)
-	assert.NotNil(t, awsModel.FileID)
-	assert.NotContains(t, awsModel.FileID, "-")
 }
 
 func TestAWSProcessingService_GetFileMetadata(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
+	mockStore := new(mocks.MockStore)
 	testData := "metadata"
 	testMetadata := make(map[string]string)
 	testMetadata["metadata"] = testData
 
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(nil)
 	mockRepo.On("FindFileMetadataByID", context.Background(), mock.Anything).Return(testMetadata, nil)
 	mockCodec.On("Unmarshal", []byte(testData), mock.Anything).Return(nil)
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
 
 	res, err := awsService.GetFileMetadata(context.Background(), testData)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 	mockRepo.AssertExpectations(t)
+	mockCodec.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
+}
+
+func TestAWSProcessingService_GetFileMetadata_StoreExistsReturnError(t *testing.T) {
+	mockRepo := new(mocks.FileRepository)
+	mockCodec := new(mocks.MockCodec)
+	mockStore := new(mocks.MockStore)
+	testData := "metadata"
+	errMsg := "error"
+	testMetadata := make(map[string]string)
+	testMetadata["metadata"] = testData
+
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(fmt.Errorf(errMsg))
+
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
+
+	res, err := awsService.GetFileMetadata(context.Background(), testData)
+
+	assert.NotNil(t, err)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockCodec.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }
 
 func TestAWSProcessingService_GetFileMetadata_RepositoryReturnFindFileMetadataByIDError(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
+	mockStore := new(mocks.MockStore)
 	testData := "metadata"
 	errMsg := "my custom error message"
 
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(nil)
 	mockRepo.On("FindFileMetadataByID", context.Background(), mock.Anything).Return(nil, fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(nil, mockRepo, nil, nil)
+	awsService := service.NewAWSProcessingService(nil, mockRepo, mockStore, nil)
 
 	res, err := awsService.GetFileMetadata(context.Background(), testData)
 
@@ -230,6 +247,30 @@ func TestAWSProcessingService_GetFileMetadata_RepositoryReturnFindFileMetadataBy
 	assert.Contains(t, err.Error(), errMsg)
 	assert.Nil(t, res)
 	mockRepo.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
+}
+
+func TestAWSProcessingService_GetFileMetadata_CodecUnmarshalReturnError(t *testing.T) {
+	mockRepo := new(mocks.FileRepository)
+	mockStore := new(mocks.MockStore)
+	mockCodec := new(mocks.MockCodec)
+	testData := "metadata"
+	errMsg := "my custom error message"
+
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(nil)
+	mockRepo.On("FindFileMetadataByID", context.Background(), mock.Anything).Return(make(map[string]string), nil)
+	mockCodec.On("Unmarshal", mock.Anything, mock.Anything).Return(fmt.Errorf(errMsg))
+
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
+
+	res, err := awsService.GetFileMetadata(context.Background(), testData)
+
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), errMsg)
+	assert.Nil(t, res)
+	mockRepo.AssertExpectations(t)
+	mockCodec.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }
 
 func TestAWSProcessingService_DownloadFile(t *testing.T) {
@@ -318,17 +359,40 @@ func TestAWSProcessingService_DownloadFile_RepositoryFindFileNameByIDReturnError
 func TestAWSProcessingService_UpdateFileMetadata(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
+	mockStore := new(mocks.MockStore)
 	testData := "testData"
 	testMetadata := make(map[string]interface{})
 
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(nil)
 	mockCodec.On("Marshal", testMetadata).Return([]byte(testData), nil)
 	mockRepo.On("UpdateFileMetadataByID", context.Background(), testData, testData).Return(nil)
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
 
 	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
 
 	assert.Nil(t, err)
+	mockCodec.AssertExpectations(t)
+	mockRepo.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
+}
+
+func TestAWSProcessingService_UpdateFileMetadata_StoreExistsReturnError(t *testing.T) {
+	mockRepo := new(mocks.FileRepository)
+	mockCodec := new(mocks.MockCodec)
+	mockStore := new(mocks.MockStore)
+	testData := "testData"
+	errMsg := "error"
+	testMetadata := make(map[string]interface{})
+
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(fmt.Errorf(errMsg))
+
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
+
+	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
+
+	assert.NotNil(t, err)
+	mockStore.AssertExpectations(t)
 	mockCodec.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
 }
@@ -336,13 +400,15 @@ func TestAWSProcessingService_UpdateFileMetadata(t *testing.T) {
 func TestAWSProcessingService_UpdateFileMetadata_MarshalReturnError(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
+	mockStore := new(mocks.MockStore)
 	testData := "testData"
 	errMsg := "my custom error message"
 	testMetadata := make(map[string]interface{})
 
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(nil)
 	mockCodec.On("Marshal", testMetadata).Return(nil, fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
 
 	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
 
@@ -350,24 +416,56 @@ func TestAWSProcessingService_UpdateFileMetadata_MarshalReturnError(t *testing.T
 	assert.Contains(t, err.Error(), errMsg)
 	mockCodec.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
 }
 
 func TestAWSProcessingService_UpdateFileMetadata_RepositoryUpdateFileMetadataReturnError(t *testing.T) {
 	mockRepo := new(mocks.FileRepository)
 	mockCodec := new(mocks.MockCodec)
+	mockStore := new(mocks.MockStore)
 	testData := "testData"
 	errMsg := "my custom error message"
 	testMetadata := make(map[string]interface{})
 
+	mockStore.On("Exists", mock.Anything, mock.AnythingOfType("string"), mock.AnythingOfType("store.ExistsOption")).Return(nil)
 	mockCodec.On("Marshal", testMetadata).Return([]byte(testData), nil)
 	mockRepo.On("UpdateFileMetadataByID", context.Background(), testData, testData).Return(fmt.Errorf(errMsg))
 
-	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, nil, nil)
+	awsService := service.NewAWSProcessingService(mockCodec, mockRepo, mockStore, nil)
 
 	err := awsService.UpdateFileMetadata(context.Background(), testMetadata, testData)
 
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), errMsg)
 	mockCodec.AssertExpectations(t)
+	mockRepo.AssertExpectations(t)
+	mockStore.AssertExpectations(t)
+}
+
+func TestAWSProcessingService_DeleteMetadataByID(t *testing.T) {
+	mockRepo := new(mocks.FileRepository)
+	testData := "testData"
+
+	mockRepo.On("DeleteMetadataByID", mock.Anything, mock.AnythingOfType("string")).Return(nil)
+
+	awsService := service.NewAWSProcessingService(nil, mockRepo, nil, nil)
+
+	err := awsService.DeleteMetadataByID(context.Background(), testData)
+
+	assert.Nil(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestAWSProcessingService_DeleteMetadataByID_RepositoryDeleteByIDReturnError(t *testing.T) {
+	mockRepo := new(mocks.FileRepository)
+	testData := "testData"
+
+	mockRepo.On("DeleteMetadataByID", mock.Anything, mock.AnythingOfType("string")).Return(fmt.Errorf(testData))
+
+	awsService := service.NewAWSProcessingService(nil, mockRepo, nil, nil)
+
+	err := awsService.DeleteMetadataByID(context.Background(), testData)
+
+	assert.NotNil(t, err)
 	mockRepo.AssertExpectations(t)
 }
