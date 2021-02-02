@@ -16,7 +16,7 @@ import (
 var awsRepo repository.FileRepository
 var mock sqlmock.Sqlmock
 
-func init() {
+func setupDB() {
 	var err error
 	var db *sql.DB
 	db, mock, err = sqlmock.New()
@@ -29,6 +29,7 @@ func init() {
 }
 
 func TestDeleteMetadataByID(t *testing.T) {
+	setupDB()
 	testData := "testData"
 
 	mock.ExpectBegin()
@@ -42,6 +43,7 @@ func TestDeleteMetadataByID(t *testing.T) {
 }
 
 func TestDeleteMetadataByID_NoChangesDetected(t *testing.T) {
+	setupDB()
 	testData := "testData"
 
 	mock.ExpectBegin()
@@ -55,6 +57,7 @@ func TestDeleteMetadataByID_NoChangesDetected(t *testing.T) {
 }
 
 func TestDeleteMetadataByID_QueryReturnError(t *testing.T) {
+	setupDB()
 	testData := "testData"
 
 	mock.ExpectBegin()
@@ -68,6 +71,7 @@ func TestDeleteMetadataByID_QueryReturnError(t *testing.T) {
 }
 
 func TestCheckIfExists(t *testing.T) {
+	setupDB()
 	testData := "testData"
 	awsModel := &model.AWSModel{
 		DocClass: testData,
@@ -84,6 +88,7 @@ func TestCheckIfExists(t *testing.T) {
 }
 
 func TestCheckIfExists_NoUniqueResult(t *testing.T) {
+	setupDB()
 	testData := "testData"
 	awsModel := &model.AWSModel{
 		DocClass: testData,
@@ -100,6 +105,7 @@ func TestCheckIfExists_NoUniqueResult(t *testing.T) {
 }
 
 func TestSaveFileMetadata(t *testing.T) {
+	setupDB()
 	testData := "testData"
 	fModel := &model.AWSModel{
 		FileID:   testData,
@@ -124,6 +130,7 @@ func TestSaveFileMetadata(t *testing.T) {
 }
 
 func TestSaveFileMetadata_InsertNotHappened(t *testing.T) {
+	setupDB()
 	testData := "testData"
 	fModel := &model.AWSModel{
 		FileID:   testData,
@@ -149,6 +156,7 @@ func TestSaveFileMetadata_InsertNotHappened(t *testing.T) {
 }
 
 func TestSaveFileMetadata_ReturnError(t *testing.T) {
+	setupDB()
 	testData := "testData"
 	errMessage := "My custom error message"
 	fModel := &model.AWSModel{
@@ -176,6 +184,7 @@ func TestSaveFileMetadata_ReturnError(t *testing.T) {
 }
 
 func TestFindFileMetadataByID(t *testing.T) {
+	setupDB()
 	testID := "testID"
 	testData := "testData"
 
@@ -198,6 +207,7 @@ func TestFindFileMetadataByID(t *testing.T) {
 }
 
 func TestFindFileMetadataByID_NoRowsFound(t *testing.T) {
+	setupDB()
 	testID := "testID"
 
 	mock.ExpectQuery("SELECT").WithArgs(testID).WillReturnError(sql.ErrNoRows)
@@ -212,6 +222,7 @@ func TestFindFileMetadataByID_NoRowsFound(t *testing.T) {
 }
 
 func TestFindFileNameByID(t *testing.T) {
+	setupDB()
 	testID := "testID"
 	testData := "testData"
 
@@ -230,6 +241,7 @@ func TestFindFileNameByID(t *testing.T) {
 }
 
 func TestFindFileNameByID_NoRowsFound(t *testing.T) {
+	setupDB()
 	testID := "testID"
 
 	mock.ExpectQuery("SELECT FILE_NAME FROM FILES").WithArgs(testID).WillReturnError(sql.ErrNoRows)
@@ -244,6 +256,7 @@ func TestFindFileNameByID_NoRowsFound(t *testing.T) {
 }
 
 func TestUpdateFileMetadataByID(t *testing.T) {
+	setupDB()
 	testID := "testID"
 	testData := "testData"
 
@@ -261,6 +274,7 @@ func TestUpdateFileMetadataByID(t *testing.T) {
 }
 
 func TestUpdateFileMetadataByID_NoRowsAffected(t *testing.T) {
+	setupDB()
 	testID := "testID"
 	testData := "testData"
 
@@ -278,6 +292,7 @@ func TestUpdateFileMetadataByID_NoRowsAffected(t *testing.T) {
 }
 
 func TestUpdateFileMetadataByID_ReturnError(t *testing.T) {
+	setupDB()
 	testID := "testID"
 	testData := "testData"
 	errMessage := "My custom error message"
