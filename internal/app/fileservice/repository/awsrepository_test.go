@@ -28,6 +28,77 @@ func init() {
 	awsRepo = repository.NewAWSFileRepository(mockDB)
 }
 
+func TestDeleteMetadataByID(t *testing.T) {
+	testData := "testData"
+
+	mock.ExpectBegin()
+	mock.ExpectExec("DELETE").WithArgs(testData).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	err := awsRepo.DeleteMetadataByID(context.Background(), testData)
+
+	assert.Nil(t, err)
+	mock.ExpectationsWereMet()
+}
+
+func TestDeleteMetadataByID_NoChangesDetected(t *testing.T) {
+	testData := "testData"
+
+	mock.ExpectBegin()
+	mock.ExpectExec("DELETE").WithArgs(testData).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectRollback()
+
+	err := awsRepo.DeleteMetadataByID(context.Background(), testData)
+
+	assert.NotNil(t, err)
+	mock.ExpectationsWereMet()
+}
+
+func TestDeleteMetadataByID_QueryReturnError(t *testing.T) {
+	testData := "testData"
+
+	mock.ExpectBegin()
+	mock.ExpectExec("DELETE").WithArgs(testData).WillReturnError(fmt.Errorf(testData))
+	mock.ExpectRollback()
+
+	err := awsRepo.DeleteMetadataByID(context.Background(), testData)
+
+	assert.NotNil(t, err)
+	mock.ExpectationsWereMet()
+}
+
+func TestCheckIfExists(t *testing.T) {
+	testData := "testData"
+	awsModel := &model.AWSModel{
+		DocClass: testData,
+		DocType:  testData,
+		DocNum:   testData,
+	}
+
+	mock.ExpectQuery("SELECT").WithArgs(testData, testData, testData).WillReturnRows(sqlmock.NewRows([]string{}))
+
+	err := awsRepo.CheckIfExists(context.Background(), awsModel)
+
+	assert.Nil(t, err)
+	mock.ExpectationsWereMet()
+}
+
+func TestCheckIfExists_NoUniqueResult(t *testing.T) {
+	testData := "testData"
+	awsModel := &model.AWSModel{
+		DocClass: testData,
+		DocType:  testData,
+		DocNum:   testData,
+	}
+
+	mock.ExpectQuery("SELECT").WithArgs(testData, testData, testData).WillReturnRows(sqlmock.NewRows([]string{"ID"}).AddRow(testData))
+
+	err := awsRepo.CheckIfExists(context.Background(), awsModel)
+
+	assert.NotNil(t, err)
+	mock.ExpectationsWereMet()
+}
+
 func TestSaveFileMetadata(t *testing.T) {
 	testData := "testData"
 	fModel := &model.AWSModel{

@@ -53,7 +53,7 @@ func (afr *AWSFileRepository) CheckIfExists(ctx context.Context, f model.FileMod
 	if rows.Scan() == sql.ErrNoRows {
 		return nil
 	}
-	return fmt.Errorf("File alredy exists in the system, to update - use update enpdoint")
+	return fmt.Errorf("File alredy exists in the system, to update - use update enpdoint, or for new document save as new")
 }
 
 // SaveFileMetadata ...
