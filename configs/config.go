@@ -23,7 +23,7 @@ func NewConfig(name, version string) *Config {
 }
 
 type ServerConfig struct {
-	Addr    string `json:"addr"`
+	Addr    string `json:"addr" env:"SERVER_ADDR"`
 	Name    string `json:"name"`
 	Version string `json:"version"`
 }

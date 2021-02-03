@@ -51,7 +51,7 @@ func prepareRouter(service service.FileProcessingService, codec codec.Codec) (*m
 	handler := handlers.NewFileServiceHandler(service, codec)
 	router := mux.NewRouter()
 	router.Use(middlewares.NewContentTypeMiddleware("application/json").ContentTypeMiddleware)
-	endpoints := pb.NewFileProcessingServiceEndpoints()
+	endpoints := pb.NewFileProcessingEndpoints()
 
 	if endpointsErr := configs.ConfigureHandlerToEndpoints(router, handler, endpoints); endpointsErr != nil {
 		return nil, fmt.Errorf("Unable to configure endpoints, %v", endpointsErr)

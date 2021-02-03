@@ -14,7 +14,7 @@ proto:
 	protoc -I. \
         -IC:/Users/viele/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 		-IC:/Users/viele/go/src/github.com/grpc-ecosystem/grpc-gateway \
-        --openapiv2_out=disable_default_errors=true,allow_merge=true:. --go_out=:. --micro_out=components="micro|http|grpc|gorilla":. proto/*.proto
+        --openapiv2_out=disable_default_errors=true,allow_merge=true:. --go_out=:. --micro_out=components="micro|http|gorilla":. proto/*.proto
 
 .PHONY: test
 test:

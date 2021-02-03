@@ -69,12 +69,14 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	s3Dirty := s3store.NewStore(
 		store.Name(cfg.Amazon.DirtyRegion.Name),
+		s3store.Region(cfg.Amazon.DirtyRegion.Region),
 		s3store.AccessKey(cfg.Amazon.DirtyRegion.AccessKey),
 		s3store.SecretKey(cfg.Amazon.DirtyRegion.SecretKey),
 		s3store.Endpoint(cfg.Amazon.DirtyRegion.Endpoint),
 	)
 	s3Clean := s3store.NewStore(
 		store.Name(cfg.Amazon.CleanRegion.Name),
+		s3store.Region(cfg.Amazon.CleanRegion.Region),
 		s3store.AccessKey(cfg.Amazon.CleanRegion.AccessKey),
 		s3store.SecretKey(cfg.Amazon.CleanRegion.SecretKey),
 		s3store.Endpoint(cfg.Amazon.CleanRegion.Endpoint),
@@ -168,7 +170,7 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
 		rw.Write([]byte(fmt.Sprintf("Method not allowed, %s", r.Method)))
 	})
-	endpoints := pb.NewFileProcessingServiceEndpoints()
+	endpoints := pb.NewFileProcessingEndpoints()
 
 	db := <-initDB("postgres", cfg.Database.URL, errCh)
 
@@ -178,9 +180,10 @@ func StartFileService(ctx context.Context, errCh chan<- error) {
 
 	handler := handlers.NewFileServiceHandler(srv, jsoncodec.NewCodec())
 
-	if err := configs.ConfigureHandlerToEndpoints(router, handler, endpoints); err != nil {
+	if err := pb.FileProcessingServiceRegister(router, handler, endpoints); err != nil {
 		errCh <- err
 	}
+
 	if err := svc.Server().Handle(svc.Server().NewHandler(router)); err != nil {
 		errCh <- err
 	}
