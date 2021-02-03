@@ -26,7 +26,10 @@ func (afr *AWSFileRepository) DeleteMetadataByID(ctx context.Context, id string)
 	tx := afr.db.MustBegin()
 	res, err := tx.ExecContext(ctx, "DELETE FROM FILES WHERE ID=$1", id)
 	if err != nil {
-		tx.Rollback()
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			return fmt.Errorf("Error during rollback, %v", rollbackErr)
+		}
 		return fmt.Errorf("Error during delete the file metadata, %v", err)
 	}
 	num, rowsErr := res.RowsAffected()
@@ -36,6 +39,10 @@ func (afr *AWSFileRepository) DeleteMetadataByID(ctx context.Context, id string)
 	}
 	if num == 0 {
 		return fmt.Errorf("Error, affected rows is 0")
+	}
+	commitErr := tx.Commit()
+	if commitErr != nil {
+		return commitErr
 	}
 	return nil
 }
